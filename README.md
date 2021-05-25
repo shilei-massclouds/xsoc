@@ -1,2 +1,2 @@
-# msoc
+# xsoc
 risc-v soc experiment

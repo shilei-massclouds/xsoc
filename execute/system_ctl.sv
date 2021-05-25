@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "csr_addr.vh"
+`include "csr.vh"
 
 module system_ctl (
     input  wire clk,
