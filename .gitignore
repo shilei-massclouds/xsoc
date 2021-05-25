@@ -1,0 +1,13 @@
+.vscode
+csrc
+*.elf
+*.daidir
+*.key
+*.h
+*.fsdb
+*.conf
+*.log
+*.rc
+verdiLog
+fpga
+*.bin

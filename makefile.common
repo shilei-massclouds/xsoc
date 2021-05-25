@@ -1,0 +1,28 @@
+.PHONY: all clean verdi
+
+INC_DIR = ${TOP_DIR}/include
+SUBDIRS = $(shell find . -maxdepth 1 -type d)
+SUBDIRS := $(filter-out ., $(SUBDIRS))
+
+VERDI_BASE = /home/cloud/synopsys/verdi_2016.06-1/share/PLI/VCS/linux64
+VCS = vcs -full64 -sverilog -cpp g++-4.8 -cc gcc-4.8 \
+		-LDFLAGS -Wl,--no-as-needed -debug_all \
+		-P ${VERDI_BASE}/novas.tab ${VERDI_BASE}/pli.a
+
+TARGET = tb_${BASE}.elf
+
+SIM = ./${TARGET}
+
+build: ${SRC}
+	${VCS} +incdir+${INC_DIR}+ +define+TOP_DIR=\"${TOP_DIR}\" -o ${TARGET} ${SRC}
+
+all: build
+
+clean:
+	rm -rf ./*.elf ./csrc ./*.daidir ./*.log ./simv* ./*.key ./*.fsdb \
+		./novas.* ./verdiLog ./*.h
+
+	$(foreach dir, $(SUBDIRS), make clean -C $(dir);)
+
+verdi:
+	verdi -sv -ssf ./${BASE}.fsdb
