@@ -16,9 +16,6 @@ module dbg_execute (
     input wire        bj_en,
     input wire [63:0] bj_pc,
 
-    input wire        trap_en,
-    input wire [63:0] trap_pc,
-
     io_ops.dst  io_ops,
     bj_ops.dst  bj_ops,
     sys_ops.dst sys_ops
@@ -45,10 +42,6 @@ module dbg_execute (
                 if (bj_en)
                     $display($time,, "Execute-BJ: [%08x] bj-pc(%0x)",
                              pc, bj_pc);
-
-                if (trap_en)
-                    $display($time,, "Execute-Trap: [%08x] trap-pc(%0x)",
-                             pc, trap_pc);
             end
 
             pending <= sys_ops.wfi_op;

@@ -7,6 +7,7 @@ module execute (
     input  wire         rst_n,
     input  wire         clear,
     input  wire         stall,
+    input  wire         trap_en,
 
     alu_ops.dst         alu_ops,
     io_ops.dst          io_ops,
@@ -23,8 +24,6 @@ module execute (
     input  wire [63:0]  fwd1,
     input  wire [63:0]  fwd2,
 
-    output wire [63:0]  trap_pc,
-    output wire         trap_en,
     output wire [63:0]  bj_pc,
     output wire         bj_en,
 
@@ -33,25 +32,24 @@ module execute (
     output wire [63:0]  pc_out,
     output wire [4:0]   rd_out,
     output wire [63:0]  result_out,
-    output wire [63:0]  data2_out
+    output wire [63:0]  data1_out,
+    output wire [63:0]  data2_out,
+    output wire [4:0]   cause_out,
+    output wire [63:0]  tval_out
 );
 
     wire [63:0] result;
-    wire [63:0] csr_data;
+    wire [4:0]  e_cause;
+    wire [63:0] e_tval;
+
+    wire [63:0] data1 = with_imm ? imm : fwd1;
 
     system_ctl u_system_ctl (
-    	.clk      (clk      ),
-        .rst_n    (rst_n    ),
         .sys_ops  (sys_ops  ),
-        .pc       (pc       ),
-        .data1    (fwd1     ),
-        .imm      (imm      ),
-        .with_imm (with_imm ),
-        .csr_data (csr_data ),
-        .trap_en  (trap_en  ),
-        .trap_pc  (trap_pc  )
+        .e_cause  (e_cause  ),
+        .e_tval   (e_tval   )
     );
-
+    
     alu u_alu (
         .alu_ops    (alu_ops    ),
         .io_ops     (io_ops     ),
@@ -76,39 +74,40 @@ module execute (
         .bj_pc   (bj_pc   )
     );
 
-    wire op_csr = sys_ops.csrrw_op | sys_ops.csrrs_op | sys_ops.csrrc_op;
-    wire [63:0] result_in = op_csr ? csr_data : result;
-
     stage_ex_ma u_stage_ex_ma (
-    	.clk         (clk         ),
+        .clk         (clk         ),
         .rst_n       (rst_n       ),
         .clear       (clear       ),
         .stall       (stall       ),
         .trap_en     (trap_en     ),
         .pc_in       (pc          ),
         .rd_in       (rd          ),
-        .result_in   (result_in   ),
+        .result_in   (result      ),
+        .data1_in    (data1       ),
         .data2_in    (fwd2        ),
+        .cause_in    (e_cause     ),
+        .tval_in     (e_tval      ),
         .io_ops_in   (io_ops      ),
         .pc_out      (pc_out      ),
         .rd_out      (rd_out      ),
         .result_out  (result_out  ),
+        .data1_out   (data1_out   ),
         .data2_out   (data2_out   ),
+        .cause_out   (cause_out   ),
+        .tval_out    (tval_out    ),
         .io_ops_out  (io_ops_out  )
     );
 
     dbg_execute u_dbg_execute (
-    	.clk     (clk       ),
+        .clk     (clk       ),
         .rst_n   (rst_n     ),
         .stall   (stall     ),
         .pc      (pc        ),
         .rd      (rd        ),
-        .result  (result_in ),
+        .result  (result    ),
         .data2   (fwd2      ),
         .bj_en   (bj_en     ),
         .bj_pc   (bj_pc     ),
-        .trap_en (trap_en   ),
-        .trap_pc (trap_pc   ),
         .io_ops  (io_ops    ),
         .bj_ops  (bj_ops    ),
         .sys_ops (sys_ops   )

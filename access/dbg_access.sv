@@ -14,6 +14,9 @@ module dbg_access (
     input wire [63:0] data,
     input wire request,
 
+    input wire [63:0] trap_pc,
+    input wire        trap_en,
+
     io_ops.dst      io_ops,
     tilelink.master bus
 );
@@ -26,6 +29,10 @@ module dbg_access (
                          pc, abi_names[rd], addr, data, stall,
                          bus.d_valid, bus.d_data, request,
                          io_ops.size, io_ops.mask, bus.d_param);
+
+                if (trap_en)
+                    $display($time,, "Access-Trap: [%08x] trap-pc(%0x)",
+                             pc, trap_pc);
             end
         end
     end

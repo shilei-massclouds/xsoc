@@ -20,13 +20,19 @@ module access (
     input  wire [4:0]   rd,
 
     input  wire [63:0]  result,
+    input  wire [63:0]  data1,
     input  wire [63:0]  data2,
+    input  wire [4:0]   cause,
+    input  wire [63:0]  tval,
 
     output wire [63:0]  ma_out,
 
     output wire [63:0]  pc_out,
     output wire [4:0]   rd_out,
     output wire [63:0]  data_out,
+
+    output wire [63:0]  trap_pc,
+    output wire         trap_en,
 
     output wire         stall,
     output wire         request,
@@ -35,12 +41,15 @@ module access (
 
     wire [63:0] out;
     wire [63:0] cache_out;
+    wire [63:0] csr_data;
+    wire        op_csr;
 
     wire hit;
     wire cache_hit = io_ops.load_op & hit;
     wire update = bus.d_valid & ~bus.d_param[0];
 
-    assign ma_out = hit ? cache_out : out;
+    assign ma_out = op_csr ? csr_data :
+                    hit    ? cache_out : out;
 
     datacache u_datacache (
         .clk         (clk         ),
@@ -66,11 +75,25 @@ module access (
         .bus           (bus           )
     );
 
+    exception u_exception (
+        .clk      (clk      ),
+        .rst_n    (rst_n    ),
+        .pc       (pc       ),
+        .data1    (data1    ),
+        .cause    (cause    ),
+        .tval     (tval     ),
+        .csr_data (csr_data ),
+        .op_csr   (op_csr   ),
+        .trap_en  (trap_en  ),
+        .trap_pc  (trap_pc  )
+    );
+
     stage_ma_wb u_stage_ma_wb (
         .clk      (clk      ),
         .rst_n    (rst_n    ),
         .clear    (clear    ),
         .stall    (stall    ),
+        .trap_en  (trap_en  ),
         .pc       (pc       ),
         .rd       (rd       ),
         .data     (ma_out   ),
@@ -80,16 +103,18 @@ module access (
     );
 
     dbg_access u_dbg_access (
-        .clk    (clk   ),
-        .rst_n  (rst_n ),
-        .stall  (stall ),
-        .pc     (pc    ),
-        .rd     (rd    ),
-        .addr   (result),
-        .data   (ma_out),
+        .clk    (clk    ),
+        .rst_n  (rst_n  ),
+        .stall  (stall  ),
+        .pc     (pc     ),
+        .rd     (rd     ),
+        .addr   (result ),
+        .data   (ma_out ),
         .request(request),
-        .io_ops (io_ops),
-        .bus    (bus   )
+        .trap_pc(trap_pc),
+        .trap_en(trap_en),
+        .io_ops (io_ops ),
+        .bus    (bus    )
     );
 
 endmodule

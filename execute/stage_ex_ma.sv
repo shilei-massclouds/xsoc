@@ -12,13 +12,19 @@ module stage_ex_ma (
     input  wire [`XMSB:0]   pc_in,
     input  wire [4:0]       rd_in,
     input  wire [63:0]      result_in,
+    input  wire [63:0]      data1_in,
     input  wire [63:0]      data2_in,
+    input  wire [4:0]       cause_in,
+    input  wire [63:0]      tval_in,
     io_ops.dst              io_ops_in,
 
     output wire [`XMSB:0]   pc_out,
     output wire [4:0]       rd_out,
     output wire [63:0]      result_out,
+    output wire [63:0]      data1_out,
     output wire [63:0]      data2_out,
+    input  wire [4:0]       cause_out,
+    input  wire [63:0]      tval_out,
     io_ops.src              io_ops_out
 );
 
@@ -32,13 +38,15 @@ module stage_ex_ma (
                               io_ops_in.amo_maxu_op,
                               io_ops_in.size, io_ops_in.mask};
 
-    dff #(221, 221'b0) dff_stage (
+    dff #(354, 354'b0) dff_stage (
         .clk    (clk),
         .rst_n  (rst_n),
         .clear  (clear | (trap_en & ~stall)),
         .stall  (stall),
-        .d      ({pc_in, rd_in, result_in, data2_in, io_bits_in}),
-        .q      ({pc_out, rd_out, result_out, data2_out, io_bits_out})
+        .d      ({pc_in, rd_in, result_in, data1_in, data2_in,
+                  cause_in, tval_in, io_bits_in}),
+        .q      ({pc_out, rd_out, result_out, data1_out, data2_out,
+                  cause_out, tval_out, io_bits_out})
     );
 
     assign {io_ops_out.load_op, io_ops_out.store_op,

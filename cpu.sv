@@ -42,6 +42,7 @@ module cpu (
     wire [63:0] ma_pc;
     wire [4:0]  ma_rd;
     wire [63:0] ma_ret;
+    wire [63:0] ma_data1;
     wire [63:0] ma_data2;
 
     wire [63:0] ma_out;
@@ -52,6 +53,9 @@ module cpu (
 
     wire [63:0] fwd1;
     wire [63:0] fwd2;
+
+    wire [4:0]  cause;
+    wire [63:0] tval;
 
     alu_ops ex_alu_ops();
     io_ops  ex_io_ops();
@@ -109,6 +113,7 @@ module cpu (
         .rst_n      (rst_n      ),
         .clear      (clear      ),
         .stall      (stall      ),
+        .trap_en    (trap_en    ),
         .alu_ops    (ex_alu_ops ),
         .io_ops     (ex_io_ops  ),
         .bj_ops     (ex_bj_ops  ),
@@ -120,15 +125,16 @@ module cpu (
         .with_imm   (ex_with_imm),
         .fwd1       (fwd1       ),
         .fwd2       (fwd2       ),
-        .trap_pc    (trap_pc    ),
-        .trap_en    (trap_en    ),
         .bj_pc      (bj_pc      ),
         .bj_en      (bj_en      ),
         .io_ops_out (ma_io_ops  ),
         .pc_out     (ma_pc      ),
         .rd_out     (ma_rd      ),
         .result_out (ma_ret     ),
-        .data2_out  (ma_data2   )
+        .data1_out  (ma_data1   ),
+        .data2_out  (ma_data2   ),
+        .cause_out  (cause      ),
+        .tval_out   (tval       )
     );
 
     access u_access (
@@ -139,11 +145,16 @@ module cpu (
         .pc       (ma_pc        ),
         .rd       (ma_rd        ),
         .result   (ma_ret       ),
+        .data1    (ma_data1     ),
         .data2    (ma_data2     ),
+        .cause    (cause        ),
+        .tval     (tval         ),
         .ma_out   (ma_out       ),
         .pc_out   (wb_pc        ),
         .rd_out   (wb_rd        ),
         .data_out (wb_out       ),
+        .trap_pc  (trap_pc      ),
+        .trap_en  (trap_en      ),
         .stall    (stall        ),
         .request  (ma_request   ),
         .bus      (ma_bus       )

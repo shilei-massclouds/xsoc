@@ -10,7 +10,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ./execute/execute.sv ./execute/stage_ex_ma.sv ./execute/alu.sv \
 	  ./execute/jmp_br.sv ./execute/system_ctl.sv ./execute/dbg_execute.sv \
 	  ./access/access.sv ./access/stage_ma_wb.sv ./access/dataagent.sv \
-	  ./access/dbg_access.sv \
+	  ./access/exception.sv ./access/dbg_access.sv \
 	  ./instcache/instcache.sv ./instcache/dbg_instcache.sv \
 	  ./datacache/datacache.sv ./datacache/dbg_datacache.sv \
 	  ./rom/stub/rom_stub.sv ./rom/stub/dbg_rom.sv \
