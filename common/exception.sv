@@ -2,7 +2,7 @@
 
 `include "csr.vh"
 
-module csr_except (
+module exception (
     input  wire         clk,
     input  wire         rst_n,
 

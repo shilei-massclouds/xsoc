@@ -10,7 +10,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ./execute/execute.sv ./execute/stage_ex_ma.sv ./execute/alu.sv \
 	  ./execute/jmp_br.sv ./execute/csr_ecall.sv ./execute/dbg_execute.sv \
 	  ./access/access.sv ./access/stage_ma_wb.sv ./access/dataagent.sv \
-	  ./access/csr_except.sv ./access/dbg_access.sv \
+	  ./access/dbg_access.sv \
 	  ./instcache/instcache.sv ./instcache/dbg_instcache.sv \
 	  ./datacache/datacache.sv ./datacache/dbg_datacache.sv \
 	  ./rom/stub/rom_stub.sv ./rom/stub/dbg_rom.sv \
@@ -23,6 +23,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ${COMMON_DIR}/clk_rst.sv ${COMMON_DIR}/dff.sv ${COMMON_DIR}/tilelink.sv \
 	  ${COMMON_DIR}/zero_page.sv \
 	  ${COMMON_DIR}/forward.sv \
+	  ${COMMON_DIR}/exception.sv \
 	  ${COMMON_DIR}/alu_ops.sv ${COMMON_DIR}/io_ops.sv \
 	  ${COMMON_DIR}/bj_ops.sv ${COMMON_DIR}/sys_ops.sv \
 	  ${COMMON_DIR}/load.c ${COMMON_DIR}/debug.c

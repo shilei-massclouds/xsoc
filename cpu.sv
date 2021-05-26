@@ -16,16 +16,16 @@ module cpu (
     wire stall;
 
     wire trap_en;
-    wire [`XMSB:0] trap_pc;
+    wire [63:0] trap_pc;
 
     wire bj_en;
-    wire [`XMSB:0] bj_pc;
+    wire [63:0] bj_pc;
 
     wire [31:0] inst;
 
     wire [63:0] id_pc;
-    wire [4:0] id_rs1;
-    wire [4:0] id_rs2;
+    wire [4:0]  id_rs1;
+    wire [4:0]  id_rs2;
     wire [63:0] id_data1;
     wire [63:0] id_data2;
 
@@ -56,6 +56,8 @@ module cpu (
 
     wire [4:0]  cause;
     wire [63:0] tval;
+    wire [63:0] csr_data;
+    wire        op_csr;
 
     alu_ops ex_alu_ops();
     io_ops  ex_io_ops();
@@ -141,20 +143,18 @@ module cpu (
     	.clk      (clk          ),
         .rst_n    (rst_n        ),
         .clear    (clear        ),
+        .trap_en  (trap_en      ),
         .io_ops   (ma_io_ops    ),
         .pc       (ma_pc        ),
         .rd       (ma_rd        ),
         .result   (ma_ret       ),
-        .data1    (ma_data1     ),
         .data2    (ma_data2     ),
-        .cause    (cause        ),
-        .tval     (tval         ),
+        .csr_data (csr_data     ),
+        .op_csr   (op_csr       ),
         .ma_out   (ma_out       ),
         .pc_out   (wb_pc        ),
         .rd_out   (wb_rd        ),
         .data_out (wb_out       ),
-        .trap_pc  (trap_pc      ),
-        .trap_en  (trap_en      ),
         .stall    (stall        ),
         .request  (ma_request   ),
         .bus      (ma_bus       )
@@ -182,6 +182,19 @@ module cpu (
         .data2   (id_data2),
         .wb_rd   (wb_rd   ),
         .wb_out  (wb_out  )
+    );
+
+    exception u_exception (
+        .clk      (clk      ),
+        .rst_n    (rst_n    ),
+        .pc       (ma_pc    ),
+        .data1    (ma_data1 ),
+        .cause    (cause    ),
+        .tval     (tval     ),
+        .csr_data (csr_data ),
+        .op_csr   (op_csr   ),
+        .trap_en  (trap_en  ),
+        .trap_pc  (trap_pc  )
     );
 
     dbg_regfile u_dbg_regfile (

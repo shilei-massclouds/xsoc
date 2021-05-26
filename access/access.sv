@@ -13,6 +13,7 @@ module access (
     input  wire         clk,
     input  wire         rst_n,
     input  wire         clear,
+    input  wire         trap_en,
 
     io_ops.dst          io_ops,
 
@@ -20,19 +21,16 @@ module access (
     input  wire [4:0]   rd,
 
     input  wire [63:0]  result,
-    input  wire [63:0]  data1,
     input  wire [63:0]  data2,
-    input  wire [4:0]   cause,
-    input  wire [63:0]  tval,
+
+    input  wire [63:0]  csr_data,
+    input  wire         op_csr,
 
     output wire [63:0]  ma_out,
 
     output wire [63:0]  pc_out,
     output wire [4:0]   rd_out,
     output wire [63:0]  data_out,
-
-    output wire [63:0]  trap_pc,
-    output wire         trap_en,
 
     output wire         stall,
     output wire         request,
@@ -41,8 +39,6 @@ module access (
 
     wire [63:0] out;
     wire [63:0] cache_out;
-    wire [63:0] csr_data;
-    wire        op_csr;
 
     wire hit;
     wire cache_hit = io_ops.load_op & hit;
@@ -75,19 +71,6 @@ module access (
         .bus           (bus           )
     );
 
-    csr_except u_csr_except (
-        .clk      (clk      ),
-        .rst_n    (rst_n    ),
-        .pc       (pc       ),
-        .data1    (data1    ),
-        .cause    (cause    ),
-        .tval     (tval     ),
-        .csr_data (csr_data ),
-        .op_csr   (op_csr   ),
-        .trap_en  (trap_en  ),
-        .trap_pc  (trap_pc  )
-    );
-
     stage_ma_wb u_stage_ma_wb (
         .clk      (clk      ),
         .rst_n    (rst_n    ),
@@ -111,8 +94,6 @@ module access (
         .addr   (result ),
         .data   (ma_out ),
         .request(request),
-        .trap_pc(trap_pc),
-        .trap_en(trap_en),
         .io_ops (io_ops ),
         .bus    (bus    )
     );
