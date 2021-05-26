@@ -75,7 +75,7 @@ module access (
         .bus           (bus           )
     );
 
-    exception u_exception (
+    csr_except u_csr_except (
         .clk      (clk      ),
         .rst_n    (rst_n    ),
         .pc       (pc       ),
