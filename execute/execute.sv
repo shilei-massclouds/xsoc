@@ -44,7 +44,7 @@ module execute (
 
     wire [63:0] data1 = with_imm ? imm : fwd1;
 
-    system_ctl u_system_ctl (
+    csr_ecall u_csr_ecall (
         .sys_ops  (sys_ops  ),
         .e_cause  (e_cause  ),
         .e_tval   (e_tval   )

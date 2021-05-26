@@ -8,7 +8,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ./decode/decode.sv ./decode/dbg_decode.sv ./decode/stage_id_ex.sv \
 	  ./decode/dec32.sv ./decode/dec16.sv ./decode/dec_sel.sv \
 	  ./execute/execute.sv ./execute/stage_ex_ma.sv ./execute/alu.sv \
-	  ./execute/jmp_br.sv ./execute/system_ctl.sv ./execute/dbg_execute.sv \
+	  ./execute/jmp_br.sv ./execute/csr_ecall.sv ./execute/dbg_execute.sv \
 	  ./access/access.sv ./access/stage_ma_wb.sv ./access/dataagent.sv \
 	  ./access/exception.sv ./access/dbg_access.sv \
 	  ./instcache/instcache.sv ./instcache/dbg_instcache.sv \
