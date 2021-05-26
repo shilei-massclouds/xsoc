@@ -195,15 +195,15 @@ module cpu (
         .wb_out  (wb_out  )
     );
 
-    exception u_exception (
+    csr u_csr (
         .clk      (clk      ),
         .rst_n    (rst_n    ),
         .pc       (ma_pc    ),
-        .data1    (ma_data1 ),
         .cause    (cause    ),
         .tval     (tval     ),
-        .csr_data (csr_data ),
-        .op_csr   (op_csr   ),
+        .wdata    (ma_data1 ),
+        .rdata    (csr_data ),
+        .r_valid  (op_csr   ),
         .satp     (satp     ),
         .trap_en  (trap_en  ),
         .trap_pc  (trap_pc  )

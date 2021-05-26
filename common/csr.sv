@@ -2,17 +2,16 @@
 
 `include "csr.vh"
 
-module exception (
+module csr (
     input  wire         clk,
     input  wire         rst_n,
 
     input  wire [63:0]  pc,
-    input  wire [63:0]  data1,
     input  wire [4:0]   cause,
     input  wire [63:0]  tval,
-
-    output wire [63:0]  csr_data,
-    output wire         op_csr,
+    input  wire [63:0]  wdata,
+    output wire [63:0]  rdata,
+    output wire         r_valid,
 
     output wire [63:0]  satp,
 
@@ -23,11 +22,11 @@ module exception (
     reg  [1:0]  priv;
     bit  [63:0] csr[4096];
 
-    assign op_csr = (cause == `SYSOP_CSR_W) ||
-                    (cause == `SYSOP_CSR_S) ||
-                    (cause == `SYSOP_CSR_C);
+    assign r_valid = (cause == `SYSOP_CSR_W) ||
+                     (cause == `SYSOP_CSR_S) ||
+                     (cause == `SYSOP_CSR_C);
 
-    assign csr_data = op_csr ? csr[tval] : 64'b0;
+    assign rdata = r_valid ? csr[tval] : 64'b0;
 
     assign satp = csr[`SATP];
 
@@ -68,11 +67,11 @@ module exception (
                 trap_en <= `ENABLE;
                 trap_pc <= csr[`MEPC];
             end else if (cause == `SYSOP_CSR_W) begin
-                csr[tval] <= data1;
+                csr[tval] <= wdata;
             end else if (cause == `SYSOP_CSR_S) begin
-                csr[tval] <= csr[tval] | data1;
+                csr[tval] <= csr[tval] | wdata;
             end else if (cause == `SYSOP_CSR_C) begin
-                csr[tval] <= csr[tval] & ~data1;
+                csr[tval] <= csr[tval] & ~wdata;
             end
         end
     end

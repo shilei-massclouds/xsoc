@@ -18,4 +18,4 @@ OBJS = $(subst .S,.bin, $(wildcard *.S))
 all:$(OBJS)
 
 clean:
-	rm -rf ./*.elf ./*.bin
+	rm -rf ./*.elf ./head.bin
