@@ -8,9 +8,9 @@ module cpu (
 
     input wire      clear,
     output wire     if_request,
-    tilelink.master if_bus,
+    tilelink.master if_phy_bus,
     output wire     ma_request,
-    tilelink.master ma_bus
+    tilelink.master ma_phy_bus
 );
 
     wire stall;
@@ -58,6 +58,7 @@ module cpu (
     wire [63:0] tval;
     wire [63:0] csr_data;
     wire        op_csr;
+    wire [63:0] satp;
 
     alu_ops ex_alu_ops();
     io_ops  ex_io_ops();
@@ -65,6 +66,8 @@ module cpu (
     sys_ops ex_sys_ops();
 
     io_ops  ma_io_ops();
+
+    tilelink ma_virt_bus();
 
     fetch u_fetch (
     	.clk     (clk       ),
@@ -79,7 +82,7 @@ module cpu (
         .pc      (id_pc     ),
 
         .request (if_request),
-        .bus     (if_bus    )
+        .bus     (if_phy_bus)
     );
 
     decode u_decode (
@@ -157,7 +160,15 @@ module cpu (
         .data_out (wb_out       ),
         .stall    (stall        ),
         .request  (ma_request   ),
-        .bus      (ma_bus       )
+        .bus      (ma_virt_bus  )
+    );
+
+    mmu u_mmu (
+    	.clk        (clk        ),
+        .rst_n      (rst_n      ),
+        .satp       (satp       ),
+        .virt_bus   (ma_virt_bus),
+        .phy_bus    (ma_phy_bus )
     );
 
     forward u_forward (
@@ -193,6 +204,7 @@ module cpu (
         .tval     (tval     ),
         .csr_data (csr_data ),
         .op_csr   (op_csr   ),
+        .satp     (satp     ),
         .trap_en  (trap_en  ),
         .trap_pc  (trap_pc  )
     );

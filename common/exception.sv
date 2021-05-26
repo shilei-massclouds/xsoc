@@ -14,6 +14,8 @@ module exception (
     output wire [63:0]  csr_data,
     output wire         op_csr,
 
+    output wire [63:0]  satp,
+
     output reg          trap_en,
     output reg  [63:0]  trap_pc
 );
@@ -26,6 +28,8 @@ module exception (
                     (cause == `SYSOP_CSR_C);
 
     assign csr_data = op_csr ? csr[tval] : 64'b0;
+
+    assign satp = csr[`SATP];
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin

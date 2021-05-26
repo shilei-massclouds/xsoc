@@ -41,9 +41,9 @@ module soc;
         .rst_n      (rst_n      ),
         .clear      (clear      ),
         .if_request (if_request ),
-        .if_bus     (master[0]  ),
+        .if_phy_bus (master[0]  ),
         .ma_request (ma_request ),
-        .ma_bus     (master[1]  )
+        .ma_phy_bus (master[1]  )
     );
 
     zero_page zero_page(slave[0]);

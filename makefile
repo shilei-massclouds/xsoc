@@ -24,6 +24,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ${COMMON_DIR}/zero_page.sv \
 	  ${COMMON_DIR}/forward.sv \
 	  ${COMMON_DIR}/exception.sv \
+	  ${COMMON_DIR}/mmu.sv \
 	  ${COMMON_DIR}/alu_ops.sv ${COMMON_DIR}/io_ops.sv \
 	  ${COMMON_DIR}/bj_ops.sv ${COMMON_DIR}/sys_ops.sv \
 	  ${COMMON_DIR}/load.c ${COMMON_DIR}/debug.c

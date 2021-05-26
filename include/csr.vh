@@ -9,6 +9,8 @@
 `define E_ECALL_S   64'h9
 `define E_ECALL_M   64'hB
 
+`define SATP        'h180
+
 `define MSTATUS     'h300
 `define MISA        'h301
 `define MEDELEG     'h302
