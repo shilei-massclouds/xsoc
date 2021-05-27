@@ -1,6 +1,7 @@
 `timescale 1ns / 1ps
 
 `include "isa.vh"
+`include "csr.vh"
 
 module cpu (
     input wire      clk,
@@ -54,8 +55,14 @@ module cpu (
     wire [63:0] fwd1;
     wire [63:0] fwd2;
 
-    wire [4:0]  cause;
-    wire [63:0] tval;
+    wire [4:0]  ex_cause;
+    wire [63:0] ex_tval;
+    wire        ma_page_fault;
+    wire [63:0] ma_pf_tval;
+
+    wire [4:0]  cause = ma_page_fault ? `MCAUSE_LOAD_PAGE_FAULT : ex_cause;
+    wire [63:0] tval = ma_page_fault ? ma_pf_tval : ex_tval;
+
     wire [63:0] csr_data;
     wire        op_csr;
     wire [63:0] satp;
@@ -138,8 +145,8 @@ module cpu (
         .result_out (ma_ret     ),
         .data1_out  (ma_data1   ),
         .data2_out  (ma_data2   ),
-        .cause_out  (cause      ),
-        .tval_out   (tval       )
+        .cause_out  (ex_cause   ),
+        .tval_out   (ex_tval    )
     );
 
     access u_access (
@@ -163,12 +170,14 @@ module cpu (
         .bus      (ma_virt_bus  )
     );
 
-    mmu u_mmu (
-    	.clk        (clk        ),
-        .rst_n      (rst_n      ),
-        .satp       (satp       ),
-        .virt_bus   (ma_virt_bus),
-        .phy_bus    (ma_phy_bus )
+    mmu u_ma_mmu (
+        .clk        (clk            ),
+        .rst_n      (rst_n          ),
+        .satp       (satp           ),
+        .page_fault (ma_page_fault  ),
+        .tval       (ma_pf_tval     ),
+        .virt_bus   (ma_virt_bus    ),
+        .phy_bus    (ma_phy_bus     )
     );
 
     forward u_forward (

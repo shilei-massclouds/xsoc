@@ -6,13 +6,10 @@ module dataagent (
     io_ops.dst          io_ops,
 
     input  wire         cache_hit,
-
     input  wire [63:0]  calc_ret,
     input  wire [63:0]  data2,
 
-
     output wire [63:0]  out,
-
     output wire         stall,
     output wire         request,
     tilelink.master     bus

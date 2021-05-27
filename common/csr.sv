@@ -40,17 +40,23 @@ module csr (
             trap_en <= `DISABLE;
             trap_pc <= 64'b0;
 
-            if (cause == `SYSOP_ECALL) begin
-                if (priv == `U_MODE) begin
-                    csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_U_MODE;
-                end else if (priv == `S_MODE) begin
-                    csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_S_MODE;
-                end else begin
-                    csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_M_MODE;
+            if (cause == `MCAUSE_LOAD_PAGE_FAULT ||
+                cause == `SYSOP_ECALL) begin
+
+                csr[`MCAUSE] <= cause;
+
+                if (cause == `SYSOP_ECALL) begin
+                    if (priv == `U_MODE) begin
+                        csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_U_MODE;
+                    end else if (priv == `S_MODE) begin
+                        csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_S_MODE;
+                    end else begin
+                        csr[`MCAUSE] <= `MCAUSE_ECALL_FROM_M_MODE;
+                    end
                 end
 
                 csr[`MEPC] <= pc;
-                csr[`MTVAL] <= 64'b0;
+                csr[`MTVAL] <= tval;
 
                 csr[`MSTATUS][`MS_MPIE] <= csr[`MSTATUS][`MS_MIE];
                 csr[`MSTATUS][`MS_MIE] <= `DISABLE;

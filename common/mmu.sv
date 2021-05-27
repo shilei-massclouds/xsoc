@@ -11,33 +11,52 @@ module mmu (
 
     input  wire [63:0]  satp,
 
+    output reg          page_fault,
+    output reg  [63:0]  tval,
+
     tilelink.slave      virt_bus,
     tilelink.master     phy_bus
 );
 
-    reg [2:0]     a_opcode;
-    reg [2:0]     a_param;
-    reg [2:0]     a_size;
-    reg [3:0]     a_source;
-    reg [63:0]    a_address;
-    reg [7:0]     a_mask;
-    reg [63:0]    a_data;
-    reg           a_corrupt;
-    reg           a_valid;
-    reg           a_ready;
+    bit [2:0]     a_opcode;
+    bit [2:0]     a_param;
+    bit [2:0]     a_size;
+    bit [3:0]     a_source;
+    bit [63:0]    a_address;
+    bit [7:0]     a_mask;
+    bit [63:0]    a_data;
+    bit           a_corrupt;
+    bit           a_valid;
+    bit           a_ready;
 
-    reg [2:0]     d_opcode;
-    reg [1:0]     d_param;
-    reg [2:0]     d_size;
-    reg [3:0]     d_source;
-    reg [5:0]     d_sink;
-    reg           d_denied;
-    reg [63:0]    d_data;
-    reg           d_corrupt;
-    reg           d_valid;
-    reg           d_ready;
+    bit [2:0]     d_opcode;
+    bit [1:0]     d_param;
+    bit [2:0]     d_size;
+    bit [3:0]     d_source;
+    bit [5:0]     d_sink;
+    bit           d_denied;
+    bit [63:0]    d_data;
+    bit           d_corrupt;
+    bit           d_valid;
+    bit           d_ready;
+
+    reg [2:0]     ori_a_opcode;
+    reg [2:0]     ori_a_param;
+    reg [2:0]     ori_a_size;
+    reg [3:0]     ori_a_source;
+    reg [63:0]    ori_a_address;
+    reg [7:0]     ori_a_mask;
+    reg [63:0]    ori_a_data;
+    reg           ori_a_corrupt;
+    reg           ori_a_valid;
+    reg           ori_d_ready;
 
     wire paging = ~(satp[63:60] == 4'h0);
+    wire [43:0] root_ppn = satp[53:10];
+    reg  [43:0] leaf_ppn;
+
+    logic [2:0] state, next_state;
+    dff #(3, 3'b0) dff_state(clk, rst_n, `DISABLE, `DISABLE, next_state, state);
 
     `ASSIGN_BUS(phy_bus, virt_bus, a_opcode);
     `ASSIGN_BUS(phy_bus, virt_bus, a_param);
@@ -60,5 +79,214 @@ module mmu (
     `ASSIGN_BUS(virt_bus, phy_bus, d_corrupt);
     `ASSIGN_BUS(virt_bus, phy_bus, d_valid);
     `ASSIGN_BUS(virt_bus, phy_bus, a_ready);
+
+    localparam PTE_BIT_V = 0;
+    localparam PTE_BIT_R = 0;
+    localparam PTE_BIT_W = 0;
+    localparam PTE_BIT_X = 0;
+
+    wire [63:0] pte = phy_bus.d_valid ? phy_bus.d_data : 64'b0;
+
+    wire branch = (~(pte[PTE_BIT_R] | pte[PTE_BIT_W] | pte[PTE_BIT_X])) &
+                  pte[PTE_BIT_V];
+
+    wire leaf = (pte[PTE_BIT_R] | (~pte[PTE_BIT_W] & pte[PTE_BIT_X])) &
+                pte[PTE_BIT_V];
+
+    wire except = ~branch & ~leaf;
+
+    /* State transition */
+    localparam S_IDLE = 3'h0;
+    localparam S_PGD  = 3'h1;
+    localparam S_PMD  = 3'h2;
+    localparam S_PT   = 3'h3;
+    localparam S_ADDR = 3'h4;
+    localparam S_DATA = 3'h5;
+    localparam S_TRAP = 3'h6;
+    localparam S_WAIT = 3'h7;
+
+    always @(state, satp, except, virt_bus.a_valid, phy_bus.d_valid) begin
+        case (state)
+            S_IDLE: begin
+                next_state = (paging & virt_bus.a_valid) ? S_PGD : S_IDLE;
+            end
+            S_PGD: begin
+                if (phy_bus.d_valid) begin
+                    if (except) begin
+                        next_state = S_TRAP;
+                    end else if (leaf) begin
+                        next_state = S_ADDR;
+                    end else begin
+                        next_state = S_PMD;
+                    end
+                end else begin
+                    next_state = S_PGD;
+                end
+            end
+            S_PMD: begin
+                if (phy_bus.d_valid) begin
+                    if (except) begin
+                        next_state = S_TRAP;
+                    end else if (leaf) begin
+                        next_state = S_ADDR;
+                    end else begin
+                        next_state = S_PT;
+                    end
+                end else begin
+                    next_state = S_PMD;
+                end
+            end
+            S_PT: begin
+                if (phy_bus.d_valid) begin
+                    if (leaf) begin
+                        next_state = S_ADDR;
+                    end else begin
+                        next_state = S_TRAP;
+                    end
+                end else begin
+                    next_state = S_PT;
+                end
+            end
+            S_ADDR: begin
+                next_state = phy_bus.d_valid ? S_DATA : S_ADDR;
+            end
+            S_DATA: begin
+                next_state = virt_bus.d_ready ? S_WAIT : S_DATA;
+            end
+            S_TRAP: begin
+                next_state = S_WAIT;
+            end
+            S_WAIT: begin
+                next_state = S_IDLE;
+            end
+            default: begin
+                next_state = S_IDLE;
+            end
+        endcase
+    end
+
+    always @(posedge clk, negedge rst_n) begin
+        if (~rst_n) begin
+            page_fault <= 1'b0;
+            tval <= 64'b0;
+        end else begin
+            case (state)
+                S_IDLE: begin
+                    if (paging & virt_bus.a_valid) begin
+                        /* Save virt_bus request */
+                        ori_a_opcode  <= virt_bus.a_opcode;
+                        ori_a_param   <= virt_bus.a_param;
+                        ori_a_size    <= virt_bus.a_size;
+                        ori_a_source  <= virt_bus.a_source;
+                        ori_a_address <= virt_bus.a_address;
+                        ori_a_mask    <= virt_bus.a_mask;
+                        ori_a_data    <= virt_bus.a_data;
+                        ori_a_corrupt <= virt_bus.a_corrupt;
+                        ori_a_valid   <= virt_bus.a_valid;
+                        ori_d_ready   <= virt_bus.d_ready;
+
+                        /* Prepare to look up pgd */
+                        a_opcode <= `TL_GET;
+                        a_param <= 3'b0;
+                        a_size <= 3;
+                        a_source <= 4'b0000;
+                        a_address <= {root_ppn, virt_bus.a_address[38:30],
+                                      3'b0};
+                        a_mask <= 8'hFF;
+                        a_data <= 64'b0;
+                        a_corrupt <= 1'b0;
+                        a_valid <= `TRUE;
+                        d_ready <= `TRUE;
+                    end
+                end
+                S_PGD: begin
+                    if (phy_bus.a_ready)
+                        a_valid <= `FALSE;
+
+                    if (phy_bus.d_valid) begin
+                        if (branch) begin
+                            /* Prepare to look up pmd */
+                            a_address <= {pte[53:10], ori_a_address[29:21],
+                                          3'b0};
+                            a_valid <= `TRUE;
+                        end else if (leaf) begin
+                            leaf_ppn <= pte[53:10];
+                        end
+                    end
+                end
+                S_PMD: begin
+                    if (phy_bus.a_ready)
+                        a_valid <= `FALSE;
+
+                    if (phy_bus.d_valid) begin
+                        if (branch) begin
+                            /* Prepare to look up pt */
+                            a_address <= {pte[53:10], ori_a_address[20:12],
+                                          3'b0};
+                            a_valid <= `TRUE;
+                        end else if (leaf) begin
+                            leaf_ppn <= pte[53:10];
+                        end
+                    end
+                end
+                S_PT: begin
+                    if (phy_bus.a_ready)
+                        a_valid <= `FALSE;
+
+                    if (phy_bus.d_valid & leaf)
+                        leaf_ppn <= pte[53:10];
+                end
+                S_ADDR: begin
+                    /* Restore virt_bus request */
+                    a_opcode  <= ori_a_opcode;
+                    a_param   <= ori_a_param;
+                    a_size    <= ori_a_size;
+                    a_source  <= ori_a_source;
+                    a_address <= {leaf_ppn, ori_a_address[11:0]};
+                    a_mask    <= ori_a_mask;
+                    a_data    <= ori_a_data;
+                    a_corrupt <= ori_a_corrupt;
+                    a_valid   <= ori_a_valid;
+                    d_ready   <= ori_d_ready;
+                end
+                S_DATA: begin
+                    if (phy_bus.a_ready)
+                        a_valid <= `FALSE;
+
+                    if (phy_bus.d_valid) begin
+                        d_opcode <= phy_bus.d_opcode;
+                        d_param <= phy_bus.d_param;
+                        d_size <= phy_bus.d_size;
+                        d_source <= phy_bus.d_source;
+                        d_sink <= phy_bus.d_sink;
+                        d_denied <= phy_bus.d_denied;
+                        d_data <= phy_bus.d_data;
+                        d_corrupt <= phy_bus.d_corrupt;
+                        d_valid <= phy_bus.d_valid;
+                        d_ready <= phy_bus.d_ready;
+                    end
+                end
+                S_TRAP: begin
+                    page_fault <= `ENABLE;
+                    tval <= ori_a_address;
+                end
+                S_WAIT: begin
+                    /* Clear all phy_bus reply */
+                    d_opcode  <= 3'b0;
+                    d_param   <= 2'b0;
+                    d_size    <= 3'b0;
+                    d_source  <= 4'b0;
+                    d_sink    <= 6'b0;
+                    d_denied  <= 1'b0;
+                    d_data    <= 64'b0;
+                    d_corrupt <= 1'b0;
+                    d_valid   <= 1'b0;
+                    d_ready   <= 1'b0;
+                end
+                default: begin
+                end
+            endcase
+        end
+    end
 
 endmodule
