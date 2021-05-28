@@ -52,11 +52,10 @@ module mmu (
     reg           ori_d_ready;
 
     wire paging = ~(satp[63:60] == 4'h0);
-    wire [43:0] root_ppn = satp[53:10];
-    reg  [43:0] leaf_ppn;
+    wire [43:0] root_ppn = satp[43:0];
 
-    logic [2:0] state, next_state;
-    dff #(3, 3'b0) dff_state(clk, rst_n, `DISABLE, `DISABLE, next_state, state);
+    logic [3:0] state, next_state;
+    dff #(4, 4'b0) dff_state(clk, rst_n, `DISABLE, `DISABLE, next_state, state);
 
     `ASSIGN_BUS(phy_bus, virt_bus, a_opcode);
     `ASSIGN_BUS(phy_bus, virt_bus, a_param);
@@ -81,11 +80,11 @@ module mmu (
     `ASSIGN_BUS(virt_bus, phy_bus, a_ready);
 
     localparam PTE_BIT_V = 0;
-    localparam PTE_BIT_R = 0;
-    localparam PTE_BIT_W = 0;
-    localparam PTE_BIT_X = 0;
+    localparam PTE_BIT_R = 1;
+    localparam PTE_BIT_W = 2;
+    localparam PTE_BIT_X = 3;
 
-    wire [63:0] pte = phy_bus.d_valid ? phy_bus.d_data : 64'b0;
+    reg [63:0] pte;
 
     wire branch = (~(pte[PTE_BIT_R] | pte[PTE_BIT_W] | pte[PTE_BIT_X])) &
                   pte[PTE_BIT_V];
@@ -96,67 +95,76 @@ module mmu (
     wire except = ~branch & ~leaf;
 
     /* State transition */
-    localparam S_IDLE = 3'h0;
-    localparam S_PGD  = 3'h1;
-    localparam S_PMD  = 3'h2;
-    localparam S_PT   = 3'h3;
-    localparam S_ADDR = 3'h4;
-    localparam S_DATA = 3'h5;
-    localparam S_TRAP = 3'h6;
-    localparam S_WAIT = 3'h7;
+    localparam S_IDLE = 4'h0;
+    localparam S_PGD  = 4'h1;
+    localparam S_PMD  = 4'h2;
+    localparam S_PT   = 4'h3;
+    localparam S_ADDR = 4'h4;
+    localparam S_DATA = 4'h5;
+    localparam S_TRAP = 4'h6;
+    localparam S_PGD_DATA = 4'h8;
+    localparam S_PMD_DATA = 4'h9;
+    localparam S_PT_DATA  = 4'ha;
 
-    always @(state, satp, except, virt_bus.a_valid, phy_bus.d_valid) begin
+    always @(state, satp, pte, virt_bus.a_valid, phy_bus.d_valid) begin
         case (state)
             S_IDLE: begin
                 next_state = (paging & virt_bus.a_valid) ? S_PGD : S_IDLE;
             end
             S_PGD: begin
-                if (phy_bus.d_valid) begin
-                    if (except) begin
-                        next_state = S_TRAP;
-                    end else if (leaf) begin
-                        next_state = S_ADDR;
-                    end else begin
-                        next_state = S_PMD;
-                    end
+                next_state = phy_bus.d_valid ? S_PGD_DATA : S_PGD;
+            end
+            S_PGD_DATA: begin
+                if (except) begin
+                    next_state = S_TRAP;
+                end else if (leaf) begin
+                    next_state = S_ADDR;
+                end else if (branch) begin
+                    next_state = S_PMD;
                 end else begin
-                    next_state = S_PGD;
+                    next_state = S_PGD_DATA;
                 end
+                $display($time,, "State: S_PGD_DATA: state(%0x,%0x) (%0x,%0x) %0x",
+                         state, next_state, except, leaf, phy_bus.d_data);
             end
             S_PMD: begin
-                if (phy_bus.d_valid) begin
-                    if (except) begin
-                        next_state = S_TRAP;
-                    end else if (leaf) begin
-                        next_state = S_ADDR;
-                    end else begin
-                        next_state = S_PT;
-                    end
+                next_state = phy_bus.d_valid ? S_PMD_DATA : S_PMD;
+            end
+            S_PMD_DATA: begin
+                $display($time,, "State: S_PMD_DATA: state(%0x) (%0x,%0x) %0x",
+                         state, except, leaf, phy_bus.d_data);
+                if (except) begin
+                    next_state = S_TRAP;
+                end else if (leaf) begin
+                    next_state = S_ADDR;
+                end else if (branch) begin
+                    next_state = S_PT;
                 end else begin
-                    next_state = S_PMD;
+                    next_state = S_PMD_DATA;
                 end
             end
             S_PT: begin
-                if (phy_bus.d_valid) begin
-                    if (leaf) begin
-                        next_state = S_ADDR;
-                    end else begin
-                        next_state = S_TRAP;
-                    end
+                next_state = phy_bus.d_valid ? S_PT_DATA : S_PT;
+            end
+            S_PT_DATA: begin
+                $display($time,, "State: S_PT: state(%0x) (%0x,%0x) %0x",
+                         state, except, leaf, phy_bus.d_data);
+                if (leaf) begin
+                    next_state = S_ADDR;
                 end else begin
-                    next_state = S_PT;
+                    next_state = S_TRAP;
                 end
             end
             S_ADDR: begin
                 next_state = phy_bus.d_valid ? S_DATA : S_ADDR;
             end
             S_DATA: begin
-                next_state = virt_bus.d_ready ? S_WAIT : S_DATA;
+                $display($time,, "State: S_DATA: state(%0x) %0x",
+                         state, phy_bus.d_data);
+                next_state = virt_bus.d_ready ? S_IDLE : S_DATA;
             end
             S_TRAP: begin
-                next_state = S_WAIT;
-            end
-            S_WAIT: begin
+                $display($time,, "State: S_TRAP", state);
                 next_state = S_IDLE;
             end
             default: begin
@@ -169,6 +177,7 @@ module mmu (
         if (~rst_n) begin
             page_fault <= 1'b0;
             tval <= 64'b0;
+            pte <= 64'b0;
         end else begin
             case (state)
                 S_IDLE: begin
@@ -200,56 +209,98 @@ module mmu (
                     end
                 end
                 S_PGD: begin
+                    $display($time,, "S_PGD: %0x, %0x, %0x",
+                             a_address, root_ppn,
+                             virt_bus.a_address);
+
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
 
-                    if (phy_bus.d_valid) begin
-                        if (branch) begin
-                            /* Prepare to look up pmd */
-                            a_address <= {pte[53:10], ori_a_address[29:21],
-                                          3'b0};
-                            a_valid <= `TRUE;
-                        end else if (leaf) begin
-                            leaf_ppn <= pte[53:10];
-                        end
+                    if (phy_bus.d_valid)
+                        pte <= phy_bus.d_data;
+                end
+                S_PGD_DATA: begin
+                    $display($time,, "S_PGD_DATA: pte %0x", pte);
+                    if (except) begin
+                        page_fault <= `ENABLE;
+                        tval <= ori_a_address;
+                    end else if (branch) begin
+                        /* Prepare to look up pmd */
+                        a_address <= {pte[53:10], ori_a_address[29:21],
+                                      3'b0};
+                        a_valid <= `TRUE;
+                    end else if (leaf) begin
+                        /* Restore virt_bus request */
+                        a_opcode  <= ori_a_opcode;
+                        a_param   <= ori_a_param;
+                        a_size    <= ori_a_size;
+                        a_source  <= ori_a_source;
+                        a_address <= {pte[53:10], ori_a_address[11:0]};
+                        a_mask    <= ori_a_mask;
+                        a_data    <= ori_a_data;
+                        a_corrupt <= ori_a_corrupt;
+                        a_valid   <= ori_a_valid;
+                        d_ready   <= ori_d_ready;
                     end
                 end
                 S_PMD: begin
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
 
-                    if (phy_bus.d_valid) begin
-                        if (branch) begin
-                            /* Prepare to look up pt */
-                            a_address <= {pte[53:10], ori_a_address[20:12],
-                                          3'b0};
-                            a_valid <= `TRUE;
-                        end else if (leaf) begin
-                            leaf_ppn <= pte[53:10];
-                        end
+                    if (phy_bus.d_valid)
+                        pte <= phy_bus.d_data;
+                end
+                S_PMD_DATA: begin
+                    $display($time,, "S_PMD: pte %0x", pte);
+                    if (except) begin
+                        page_fault <= `ENABLE;
+                        tval <= ori_a_address;
+                    end else if (branch) begin
+                        /* Prepare to look up pt */
+                        a_address <= {pte[53:10], ori_a_address[20:12],
+                                      3'b0};
+                        a_valid <= `TRUE;
+                    end else if (leaf) begin
+                        /* Restore virt_bus request */
+                        a_opcode  <= ori_a_opcode;
+                        a_param   <= ori_a_param;
+                        a_size    <= ori_a_size;
+                        a_source  <= ori_a_source;
+                        a_address <= {pte[53:10], ori_a_address[11:0]};
+                        a_mask    <= ori_a_mask;
+                        a_data    <= ori_a_data;
+                        a_corrupt <= ori_a_corrupt;
+                        a_valid   <= ori_a_valid;
+                        d_ready   <= ori_d_ready;
                     end
                 end
                 S_PT: begin
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
 
-                    if (phy_bus.d_valid & leaf)
-                        leaf_ppn <= pte[53:10];
+                    if (phy_bus.d_valid)
+                        pte <= phy_bus.d_data;
+                end
+                S_PT_DATA: begin
+                    $display($time,, "S_PT: pte %0x", pte);
+                    if (except) begin
+                        page_fault <= `ENABLE;
+                        tval <= ori_a_address;
+                    end else begin
+                        /* Restore virt_bus request */
+                        a_opcode  <= ori_a_opcode;
+                        a_param   <= ori_a_param;
+                        a_size    <= ori_a_size;
+                        a_source  <= ori_a_source;
+                        a_address <= {pte[53:10], ori_a_address[11:0]};
+                        a_mask    <= ori_a_mask;
+                        a_data    <= ori_a_data;
+                        a_corrupt <= ori_a_corrupt;
+                        a_valid   <= ori_a_valid;
+                        d_ready   <= ori_d_ready;
+                    end
                 end
                 S_ADDR: begin
-                    /* Restore virt_bus request */
-                    a_opcode  <= ori_a_opcode;
-                    a_param   <= ori_a_param;
-                    a_size    <= ori_a_size;
-                    a_source  <= ori_a_source;
-                    a_address <= {leaf_ppn, ori_a_address[11:0]};
-                    a_mask    <= ori_a_mask;
-                    a_data    <= ori_a_data;
-                    a_corrupt <= ori_a_corrupt;
-                    a_valid   <= ori_a_valid;
-                    d_ready   <= ori_d_ready;
-                end
-                S_DATA: begin
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
 
@@ -266,11 +317,8 @@ module mmu (
                         d_ready <= phy_bus.d_ready;
                     end
                 end
-                S_TRAP: begin
-                    page_fault <= `ENABLE;
-                    tval <= ori_a_address;
-                end
-                S_WAIT: begin
+                S_DATA: begin
+                    $display($time,, "S_DATA: %0x", d_data);
                     /* Clear all phy_bus reply */
                     d_opcode  <= 3'b0;
                     d_param   <= 2'b0;
@@ -282,6 +330,10 @@ module mmu (
                     d_corrupt <= 1'b0;
                     d_valid   <= 1'b0;
                     d_ready   <= 1'b0;
+                end
+                S_TRAP: begin
+                    page_fault <= `DISABLE;
+                    tval <= 64'b0;
                 end
                 default: begin
                 end
