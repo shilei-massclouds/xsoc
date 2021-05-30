@@ -23,6 +23,8 @@ module execute (
 
     input  wire [63:0]  fwd1,
     input  wire [63:0]  fwd2,
+    input  wire [4:0]   cause_in,
+    input  wire [63:0]  tval_in,
 
     output wire [63:0]  bj_pc,
     output wire         bj_en,
@@ -39,15 +41,17 @@ module execute (
 );
 
     wire [63:0] result;
-    wire [4:0]  e_cause;
-    wire [63:0] e_tval;
+    wire [4:0]  _cause;
+    wire [63:0] _tval;
 
     wire [63:0] data1 = with_imm ? imm : fwd1;
 
     csr_ecall u_csr_ecall (
         .sys_ops  (sys_ops  ),
-        .e_cause  (e_cause  ),
-        .e_tval   (e_tval   )
+        .cause_in (cause_in ),
+        .tval_in  (tval_in  ),
+        .cause_out(_cause   ),
+        .tval_out (_tval    )
     );
     
     alu u_alu (
@@ -85,8 +89,8 @@ module execute (
         .result_in   (result      ),
         .data1_in    (data1       ),
         .data2_in    (fwd2        ),
-        .cause_in    (e_cause     ),
-        .tval_in     (e_tval      ),
+        .cause_in    (_cause      ),
+        .tval_in     (_tval       ),
         .io_ops_in   (io_ops      ),
         .pc_out      (pc_out      ),
         .rd_out      (rd_out      ),
@@ -106,6 +110,8 @@ module execute (
         .rd      (rd        ),
         .result  (result    ),
         .data2   (fwd2      ),
+        .cause   (cause_in  ),
+        .tval    (tval_in   ),
         .bj_en   (bj_en     ),
         .bj_pc   (bj_pc     ),
         .io_ops  (io_ops    ),

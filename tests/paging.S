@@ -14,17 +14,20 @@ _start:
     addi t0, t0, 8
     blt t0, t1, 1b
 
-    /* Set tempory trap vector */
-    la a0, 2f
-    csrw CSR_MTVEC, a0
-
-    /* a6 <= _lottery(phy) */
-    la a6, _lottery
-
-    /* a5 <= _lottery(virt) */
+    /* Calculate distance between virt addr and phy addr */
     li a1, TEST_VIRT_ADDR
     li a2, TEST_PHY_ADDR
     sub a1, a1, a2
+
+    /* Set tempory trap vector */
+    la a0, 2f
+    add a0, a0, a1
+    csrw CSR_MTVEC, a0
+
+    /* a6 <= _start(phy) */
+    la a6, _start
+
+    /* a5 <= _start(virt) */
     add a5, a6, a1
 
     /* vpn1 * pte_size */

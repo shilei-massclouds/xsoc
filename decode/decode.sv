@@ -17,6 +17,8 @@ module decode (
     output wire [4:0]   rs2,
     input wire  [63:0]  data1,
     input wire  [63:0]  data2,
+    input wire  [4:0]   cause_in,
+    input wire  [63:0]  tval_in,
 
     output wire [63:0]  pc_out,
     output wire [4:0]   rd_out,
@@ -27,6 +29,8 @@ module decode (
     output wire [63:0]  imm_out,
     output wire         with_imm_out,
     output wire         compressed_out,
+    output wire [4:0]   cause_out,
+    output wire [63:0]  tval_out,
     alu_ops.src         alu_ops_out,
     io_ops.src          io_ops_out,
     bj_ops.src          bj_ops_out,
@@ -88,6 +92,8 @@ module decode (
         .imm_in         (imm            ),
         .with_imm_in    (with_imm       ),
         .compressed_in  (compressed     ),
+        .cause_in       (cause_in       ),
+        .tval_in        (tval_in        ),
         .alu_ops_in     (alu_ops        ),
         .io_ops_in      (io_ops         ),
         .bj_ops_in      (bj_ops         ),
@@ -101,6 +107,8 @@ module decode (
         .imm_out        (imm_out        ),
         .with_imm_out   (with_imm_out   ),
         .compressed_out (compressed_out ),
+        .cause_out      (cause_out      ),
+        .tval_out       (tval_out       ),
         .alu_ops_out    (alu_ops_out    ),
         .io_ops_out     (io_ops_out     ),
         .bj_ops_out     (bj_ops_out     ),
@@ -111,10 +119,14 @@ module decode (
     	.clk      (clk      ),
         .rst_n    (rst_n    ),
         .pc       (pc_in    ),
+        .inst     (inst_in  ),
+        .rd       (rd       ),
         .data1    (data1    ),
         .data2    (data2    ),
         .imm      (imm      ),
-        .with_imm (with_imm )
+        .with_imm (with_imm ),
+        .cause    (cause_in ),
+        .tval     (tval_in  )
     );
 
 endmodule

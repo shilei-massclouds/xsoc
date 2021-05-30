@@ -17,6 +17,9 @@ module dbg_instcache (
     input wire inst_comp,
     input wire [31:0] inst,
 
+    input wire page_fault,
+    input wire invalid,
+
     input wire request,
     tilelink.master bus
 );
@@ -24,8 +27,9 @@ module dbg_instcache (
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
         end else if (check_verbose(pc)) begin
-            $display($time,, "instcache: [%0x] state(%0x) line(%x, %x) bus_request(%0x) req_bmp(%0x)",
-                     pc, state, line, bh_line, request, req_bmp);
+            $display($time,, "instcache: [%0x] state(%0x) line(%0x, %0x) bus_request(%0x) req_bmp(%0x) page_fault(%0x) invalid(%0x)",
+                     pc, state, line, bh_line, request, req_bmp,
+                     page_fault, invalid);
 
             if (bus.a_valid)
                 $display($time,, "instcache[addr]: [%x]", bus.a_address);

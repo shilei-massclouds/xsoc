@@ -6,6 +6,9 @@ module instcache (
     input   wire    clk,
     input   wire    rst_n,
 
+    input   wire    invalid,
+    input   wire    page_fault,
+
     input   wire    [63:0] pc,
 
     output  wire    inst_valid,
@@ -58,10 +61,11 @@ module instcache (
     wire last_req = ^req_bmp;
 
     /* Output */
-    assign inst_valid = (~crossed & hit) | (crossed & (hit & hit_rest));
+    assign inst_valid = ~invalid &
+                        ((~crossed & hit) | (crossed & (hit & hit_rest)));
     assign inst = inst_valid ?
         (({32{~crossed}} & (data >> (offset * 8))) |
-         ({32{crossed}} & {bh_data[15:0], data[63:48]})) : {16'b0, 16'b1};
+         ({32{crossed}} & {bh_data[15:0], data[63:48]})) : {31'b0, 1'b1};
     assign inst_comp  = ~(&(inst[1:0]));
 
     /* Controller */
@@ -73,19 +77,24 @@ module instcache (
     dff #(2, 2'b0) dff_state(clk, rst_n, `DISABLE, `DISABLE, next_state, state);
 
     /* State transition */
-    always @(state, crossed, hit, hit_rest,
-             bus.a_ready, bus.d_valid, last_req) begin
+    always @(state, crossed, hit, hit_rest, page_fault,
+             bus.a_ready, bus.d_valid, last_req, invalid) begin
 
         case (state)
             S_CACHE: begin
-                if (crossed) begin
-                    next_state = (hit & hit_rest) ? S_CACHE : S_ADDR;
+                if (invalid) begin
+                    next_state = S_CACHE;
                 end else begin
-                    next_state = hit ? S_CACHE : S_ADDR;
+                    if (crossed) begin
+                        next_state = (hit & hit_rest) ? S_CACHE : S_ADDR;
+                    end else begin
+                        next_state = hit ? S_CACHE : S_ADDR;
+                    end
                 end
             end
             S_ADDR:
-                next_state = bus.a_ready ? S_DATA : S_ADDR;
+                next_state = page_fault ? S_CACHE :
+                             bus.a_ready ? S_DATA : S_ADDR;
             S_DATA:
                 if (bus.d_valid) begin
                     next_state = last_req ? S_CACHE : S_ADDR;
@@ -104,8 +113,8 @@ module instcache (
     reg clr_all;
     reg clr_addr0;
 
-    always @(state, crossed, hit, hit_rest,
-             bus.a_ready, bus.d_valid, last_req) begin
+    always @(state, crossed, hit, hit_rest, page_fault,
+             bus.a_ready, bus.d_valid, last_req, invalid) begin
 
         set_addr0 = `DISABLE;
         set_addr1 = `DISABLE;
@@ -117,15 +126,20 @@ module instcache (
             S_CACHE: begin
                 request = `DISABLE;
 
-                if (crossed) begin
-                    if (~hit) set_addr0 = `ENABLE;
-                    if (~hit_rest) set_addr1 = `ENABLE;
-                end else if (~hit) begin
-                    set_addr0 = `ENABLE;
+                if (~invalid) begin
+                    if (crossed) begin
+                        if (~hit) set_addr0 = `ENABLE;
+                        if (~hit_rest) set_addr1 = `ENABLE;
+                    end else if (~hit) begin
+                        set_addr0 = `ENABLE;
+                    end
                 end
             end
             S_ADDR: begin
-                request = `ENABLE;
+                if (page_fault)
+                    clr_all = `ENABLE;
+                else
+                    request = `ENABLE;
             end
             S_DATA: begin
                 if (bus.d_valid) begin
@@ -141,7 +155,7 @@ module instcache (
 
     /* Datapath */
     assign req_addr_rest = req_addr + 8;
-    assign bus.a_valid   = (state == S_ADDR);
+    assign bus.a_valid   = (state == S_ADDR) & ~page_fault;
     assign bus.a_address = req_bmp[0] ? req_addr :
                            req_bmp[1] ? req_addr_rest : 64'b0;
     assign bus.d_ready  = (state == S_DATA);
@@ -157,6 +171,14 @@ module instcache (
             req_bmp <= 2'b0;
             request <= `DISABLE;
         end else begin
+            if (invalid) begin
+                for (integer i = 0; i < CACHE_DEPTH; i++) begin
+                    lines[i] <= {CACHE_WIDTH{1'b0}};
+                end
+                $display($time,, "### invalid State(%x,%x)",
+                         state, next_state);
+            end
+
             if (set_addr0 | set_addr1) begin
                 req_addr <= {pc[63:3], 3'b0};
                 req_bmp[0] <= set_addr0;
@@ -194,10 +216,12 @@ module instcache (
         .inst_valid (inst_valid     ),
         .inst_comp  (inst_comp      ),
         .inst       (inst           ),
+        .page_fault (page_fault     ),
+        .invalid    (invalid        ),
         .request    (request        ),
         .bus        (bus            )
     );
-    
+
     initial begin
         //$monitor($time,, "data(%x) inst(%x) offset(%x)", data, inst, offset);
     end

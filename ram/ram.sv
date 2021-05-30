@@ -154,6 +154,7 @@ module ram (
         .clk   (clk   ),
         .rst_n (rst_n ),
         .mask  (mask  ),
+        .state (state ),
         .bus   (bus   )
     );
 

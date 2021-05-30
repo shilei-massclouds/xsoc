@@ -17,13 +17,19 @@ module dbg_crossbar_dp (
     input wire          a_valid,
     input wire          a_ready,
     input wire [5:0]    chip_sel,
-    input wire [63:0]   chip_addr
+    input wire [63:0]   chip_addr,
+    input wire [15:0]   owner_bitmap,
+    input wire          owner_valid
 );
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
         end else begin
             if (check_verbose(64'b0)) begin
+                $display($time,, "Crossbar-dp: owner(%0x,%0x) a_addr[%08x] chip(%0x : %0x)",
+                         owner_bitmap, owner_valid, a_address,
+                         chip_sel, chip_addr);
+
                 if (a_valid) begin
                     $display($time,, "Crossbar-dp: a_addr[%08x] chip(%0x : %0x)",
                              a_address, chip_sel, chip_addr);

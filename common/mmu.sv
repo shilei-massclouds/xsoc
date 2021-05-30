@@ -106,7 +106,8 @@ module mmu (
     localparam S_PMD_DATA = 4'h9;
     localparam S_PT_DATA  = 4'ha;
 
-    always @(state, satp, pte, virt_bus.a_valid, phy_bus.d_valid) begin
+    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid) begin
+        //$display($time,, "### State: %0x", state);
         case (state)
             S_IDLE: begin
                 next_state = (paging & virt_bus.a_valid) ? S_PGD : S_IDLE;
@@ -160,7 +161,7 @@ module mmu (
             end
             S_DATA: begin
                 $display($time,, "State: S_DATA: state(%0x) %0x",
-                         state, phy_bus.d_data);
+                         state, virt_bus.d_ready);
                 next_state = virt_bus.d_ready ? S_IDLE : S_DATA;
             end
             S_TRAP: begin
@@ -179,6 +180,7 @@ module mmu (
             tval <= 64'b0;
             pte <= 64'b0;
         end else begin
+            //$display($time,, "state: %0x", state);
             case (state)
                 S_IDLE: begin
                     if (paging & virt_bus.a_valid) begin
@@ -209,9 +211,8 @@ module mmu (
                     end
                 end
                 S_PGD: begin
-                    $display($time,, "S_PGD: %0x, %0x, %0x",
-                             a_address, root_ppn,
-                             virt_bus.a_address);
+                    $display($time,, "S_PGD: %0x, %0x ori(%0x)",
+                             a_address, root_ppn, ori_a_address);
 
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
@@ -220,7 +221,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PGD_DATA: begin
-                    $display($time,, "S_PGD_DATA: pte %0x", pte);
+                    $display($time,, "S_PGD_DATA: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -244,6 +246,9 @@ module mmu (
                     end
                 end
                 S_PMD: begin
+                    $display($time,, "S_PMD: %0x, %0x ori(%0x)",
+                             a_address, root_ppn, ori_a_address);
+
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
 
@@ -251,7 +256,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PMD_DATA: begin
-                    $display($time,, "S_PMD: pte %0x", pte);
+                    $display($time,, "S_PMD_DATA: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -282,7 +288,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PT_DATA: begin
-                    $display($time,, "S_PT: pte %0x", pte);
+                    $display($time,, "S_PT: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -301,8 +308,13 @@ module mmu (
                     end
                 end
                 S_ADDR: begin
-                    if (phy_bus.a_ready)
+                    $display($time,, "S_ADDR: (%0x:%0x)",
+                             phy_bus.d_data, phy_bus.d_valid);
+
+                    if (phy_bus.a_ready) begin
                         a_valid <= `FALSE;
+                        a_ready <= `TRUE;
+                    end
 
                     if (phy_bus.d_valid) begin
                         d_opcode <= phy_bus.d_opcode;
@@ -314,7 +326,6 @@ module mmu (
                         d_data <= phy_bus.d_data;
                         d_corrupt <= phy_bus.d_corrupt;
                         d_valid <= phy_bus.d_valid;
-                        d_ready <= phy_bus.d_ready;
                     end
                 end
                 S_DATA: begin
@@ -329,7 +340,7 @@ module mmu (
                     d_data    <= 64'b0;
                     d_corrupt <= 1'b0;
                     d_valid   <= 1'b0;
-                    d_ready   <= 1'b0;
+                    a_ready   <= 1'b0;
                 end
                 S_TRAP: begin
                     page_fault <= `DISABLE;

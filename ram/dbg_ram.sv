@@ -7,6 +7,7 @@ module dbg_ram (
     input wire rst_n,
 
     input wire [63:0] mask,
+    input wire state,
 
     tilelink.slave bus
 );
@@ -16,7 +17,8 @@ module dbg_ram (
         end else if (`CHECK_ENV("VERBOSE_RAM")) begin
             if (bus.a_valid) begin
                 if (bus.a_opcode == `TL_GET)
-                    $display($time,, "RAM(get): [%x]", bus.a_address);
+                    $display($time,, "RAM(get): [%x] (%x); state(%x)",
+                             bus.a_address, bus.a_size, state);
                 else if (bus.a_opcode == `TL_PUT_F || bus.a_opcode == `TL_PUT_P)
                     $display($time,, "RAM(put): [%x] %x (%x:%x)",
                              bus.a_address, bus.a_data, bus.a_mask, bus.a_size);

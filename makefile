@@ -44,3 +44,4 @@ test: build
 	TEST=tests/j ${SIM}
 	TEST=tests/rom_load ${SIM}
 	TEST=tests/uart_wr ${SIM}
+	TEST=tests/paging ${SIM}

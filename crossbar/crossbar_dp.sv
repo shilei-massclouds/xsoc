@@ -158,7 +158,9 @@ module crossbar_dp (
         .a_valid   (a_valid   ),
         .a_ready   (a_ready   ),
         .chip_sel  (chip_sel  ),
-        .chip_addr (chip_addr )
+        .chip_addr (chip_addr ),
+        .owner_valid (owner_valid),
+        .owner_bitmap(owner_bitmap)
     );
 
 endmodule

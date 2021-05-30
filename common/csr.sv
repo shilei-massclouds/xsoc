@@ -14,9 +14,10 @@ module csr (
     output wire         r_valid,
 
     output wire [63:0]  satp,
+    output wire         invalid,
 
-    output reg          trap_en,
-    output reg  [63:0]  trap_pc
+    output wire         trap_en,
+    output wire [63:0]  trap_pc
 );
 
     reg  [1:0]  priv;
@@ -30,17 +31,24 @@ module csr (
 
     assign satp = csr[`SATP];
 
+    wire except = (cause == `MCAUSE_LOAD_PAGE_FAULT ||
+                   cause == `MCAUSE_INST_PAGE_FAULT ||
+                   cause == `SYSOP_ECALL);
+
+    assign invalid = r_valid & (tval == `SATP);
+    assign trap_en = (except || (cause == `SYSOP_RET) || invalid);
+
+    assign trap_pc = except ? csr[`MTVEC] :
+                     (cause == `SYSOP_RET) ? csr[`MEPC] :
+                     invalid ? (pc + 4) : 64'b0;
+
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
             priv <= `M_MODE;
             csr[`MISA] <= MISA_INIT_VAL;
-            trap_en <= `DISABLE;
-            trap_pc <= 64'b0;
         end else begin
-            trap_en <= `DISABLE;
-            trap_pc <= 64'b0;
-
             if (cause == `MCAUSE_LOAD_PAGE_FAULT ||
+                cause == `MCAUSE_INST_PAGE_FAULT ||
                 cause == `SYSOP_ECALL) begin
 
                 csr[`MCAUSE] <= cause;
@@ -64,14 +72,10 @@ module csr (
                 csr[`MSTATUS][`MS_MPP] <= priv;
                 priv <= `M_MODE;
 
-                trap_en <= `ENABLE;
-                trap_pc <= csr[`MTVEC];
+                $display($time,, "Except(%0x): tvec(%0x)", cause, csr[`MTVEC]);
             end else if (cause == `SYSOP_RET) begin
                 csr[`MSTATUS][`MS_MIE] <= csr[`MSTATUS][`MS_MPIE];
                 priv <= csr[`MSTATUS][`MS_MPP];
-
-                trap_en <= `ENABLE;
-                trap_pc <= csr[`MEPC];
             end else if (cause == `SYSOP_CSR_W) begin
                 csr[tval] <= wdata;
             end else if (cause == `SYSOP_CSR_S) begin

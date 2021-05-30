@@ -41,7 +41,8 @@ module stage_ex_ma (
     dff #(354, 354'b0) dff_stage (
         .clk    (clk),
         .rst_n  (rst_n),
-        .clear  (clear | (trap_en & ~stall)),
+        //.clear  (clear | (trap_en & ~stall)),
+        .clear  (clear | trap_en),
         .stall  (stall),
         .d      ({pc_in, rd_in, result_in, data1_in, data2_in,
                   cause_in, tval_in, io_bits_in}),

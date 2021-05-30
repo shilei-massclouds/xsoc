@@ -20,6 +20,8 @@ module stage_id_ex (
     input wire [63:0] imm_in,
     input wire with_imm_in,
     input wire compressed_in,
+    input wire [4:0] cause_in,
+    input wire [63:0] tval_in,
     alu_ops.dst alu_ops_in,
     io_ops.dst  io_ops_in,
     bj_ops.dst  bj_ops_in,
@@ -34,6 +36,8 @@ module stage_id_ex (
     output wire [63:0] imm_out,
     output wire with_imm_out,
     output wire compressed_out,
+    output wire [4:0] cause_out,
+    output wire [63:0] tval_out,
     alu_ops.src alu_ops_out,
     io_ops.src  io_ops_out,
     bj_ops.src  bj_ops_out,
@@ -100,16 +104,19 @@ module stage_id_ex (
             sys_ops_out.csrrw_op, sys_ops_out.csrrs_op,
             sys_ops_out.csrrc_op, sys_ops_out.csr_addr} = sys_bits_out;
 
-    dff #(342, 342'b0) dff_stage (
+    dff #(411, 411'b0) dff_stage (
         .clk    (clk),
         .rst_n  (rst_n),
-        .clear  (clear | ((bj_en | trap_en) & ~stall)),
+        //.clear  (clear | ((bj_en | trap_en) & ~stall)),
+        .clear  (clear | trap_en | (bj_en & ~stall)),
         .stall  (stall),
         .d      ({rs1_in, rs2_in, data1_in, data2_in,
                   imm_in, with_imm_in, compressed_in, pc_in, rd_in,
+                  cause_in, tval_in,
                   alu_bits_in, io_bits_in, bj_bits_in, sys_bits_in}),
         .q      ({rs1_out, rs2_out, data1_out, data2_out,
                   imm_out, with_imm_out, compressed_out, pc_out, rd_out,
+                  cause_out, tval_out,
                   alu_bits_out, io_bits_out, bj_bits_out, sys_bits_out})
     );
 

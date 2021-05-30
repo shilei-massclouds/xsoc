@@ -29,6 +29,8 @@ module cpu (
     wire [4:0]  id_rs2;
     wire [63:0] id_data1;
     wire [63:0] id_data2;
+    wire [4:0]  id_cause;
+    wire [63:0] id_tval;
 
     wire [63:0] ex_pc;
     wire [4:0]  ex_rd;
@@ -37,6 +39,8 @@ module cpu (
     wire [63:0] ex_data1;
     wire [63:0] ex_data2;
     wire [63:0] ex_imm;
+    wire [4:0]  ex_cause;
+    wire [63:0] ex_tval;
     wire ex_with_imm;
     wire ex_comp;
 
@@ -55,13 +59,17 @@ module cpu (
     wire [63:0] fwd1;
     wire [63:0] fwd2;
 
-    wire [4:0]  ex_cause;
-    wire [63:0] ex_tval;
+    wire [4:0]  ma_cause;
+    wire [63:0] ma_tval;
+
+    wire        if_page_fault;
+    wire [63:0] if_pf_tval;
+
     wire        ma_page_fault;
     wire [63:0] ma_pf_tval;
 
-    wire [4:0]  cause = ma_page_fault ? `MCAUSE_LOAD_PAGE_FAULT : ex_cause;
-    wire [63:0] tval = ma_page_fault ? ma_pf_tval : ex_tval;
+    wire [4:0]  cause = ma_page_fault ? `MCAUSE_LOAD_PAGE_FAULT : ma_cause;
+    wire [63:0] tval = ma_page_fault ? ma_pf_tval : ma_tval;
 
     wire [63:0] csr_data;
     wire        op_csr;
@@ -74,22 +82,39 @@ module cpu (
 
     io_ops  ma_io_ops();
 
+    tilelink if_virt_bus();
     tilelink ma_virt_bus();
 
-    fetch u_fetch (
-    	.clk     (clk       ),
-        .rst_n   (rst_n     ),
-        .stall   (stall     ),
-        .clear   (clear     ),
-        .trap_en (trap_en   ),
-        .trap_pc (trap_pc   ),
-        .bj_en   (bj_en     ),
-        .bj_pc   (bj_pc     ),
-        .inst    (inst      ),
-        .pc      (id_pc     ),
+    wire invalid;
 
-        .request (if_request),
-        .bus     (if_phy_bus)
+    fetch u_fetch (
+        .clk        (clk       ),
+        .rst_n      (rst_n     ),
+        .stall      (stall     ),
+        .clear      (clear     ),
+        .trap_en    (trap_en   ),
+        .trap_pc    (trap_pc   ),
+        .bj_en      (bj_en     ),
+        .bj_pc      (bj_pc     ),
+        .invalid    (invalid   ),
+        .page_fault (if_page_fault),
+        .tval       (if_pf_tval),
+        .inst       (inst      ),
+        .pc         (id_pc     ),
+        .cause_out  (id_cause  ),
+        .tval_out   (id_tval   ),
+        .request    (if_request),
+        .bus        (if_virt_bus)
+    );
+
+    mmu u_if_mmu (
+        .clk        (clk            ),
+        .rst_n      (rst_n          ),
+        .satp       (satp           ),
+        .page_fault (if_page_fault  ),
+        .tval       (if_pf_tval     ),
+        .virt_bus   (if_virt_bus    ),
+        .phy_bus    (if_phy_bus     )
     );
 
     decode u_decode (
@@ -105,6 +130,8 @@ module cpu (
         .rs2            (id_rs2         ),
         .data1          (id_data1       ),
         .data2          (id_data2       ),
+        .cause_in       (id_cause       ),
+        .tval_in        (id_tval        ),
         .pc_out         (ex_pc          ),
         .rd_out         (ex_rd          ),
         .rs1_out        (ex_rs1         ),
@@ -114,6 +141,8 @@ module cpu (
         .imm_out        (ex_imm         ),
         .with_imm_out   (ex_with_imm    ),
         .compressed_out (ex_comp        ),
+        .cause_out      (ex_cause       ),
+        .tval_out       (ex_tval        ),
         .alu_ops_out    (ex_alu_ops     ),
         .io_ops_out     (ex_io_ops      ),
         .bj_ops_out     (ex_bj_ops      ),
@@ -137,6 +166,8 @@ module cpu (
         .with_imm   (ex_with_imm),
         .fwd1       (fwd1       ),
         .fwd2       (fwd2       ),
+        .cause_in   (ex_cause   ),
+        .tval_in    (ex_tval    ),
         .bj_pc      (bj_pc      ),
         .bj_en      (bj_en      ),
         .io_ops_out (ma_io_ops  ),
@@ -145,8 +176,8 @@ module cpu (
         .result_out (ma_ret     ),
         .data1_out  (ma_data1   ),
         .data2_out  (ma_data2   ),
-        .cause_out  (ex_cause   ),
-        .tval_out   (ex_tval    )
+        .cause_out  (ma_cause   ),
+        .tval_out   (ma_tval    )
     );
 
     access u_access (
@@ -214,6 +245,7 @@ module cpu (
         .rdata    (csr_data ),
         .r_valid  (op_csr   ),
         .satp     (satp     ),
+        .invalid  (invalid  ),
         .trap_en  (trap_en  ),
         .trap_pc  (trap_pc  )
     );
