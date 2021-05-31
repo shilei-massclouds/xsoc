@@ -2,20 +2,6 @@
 
 `include "isa.vh"
 
-`define LOAD_IMG(filename, base, size) \
-    handle = open_img(filename, base); \
-    if (handle) begin \
-        logic [63:0] addr; \
-        logic [63:0] data; \
-        forever begin \
-            if (load_img(handle, addr, data) < 0) \
-                break; \
-            cells[addr] = data; \
-        end \
-        size = close_img(); \
-    end
-
-
 module rom (
     input wire clk,
     input wire rst_n,
@@ -95,16 +81,22 @@ module rom (
         .data  (bus.d_data  )
     );
 
-    /* Initialize ram with firmware */
+    /* Initialize rom with firmware */
     initial begin
         string test;
+        string dev;
         longint handle;
         int size = 0;
 
+        dev = getenv("START_DEV");
         test = getenv("TEST");
         if (test.len() > 0) begin
             $display("Test: %s", test);
             `LOAD_IMG({test, ".bin"}, 0, size)
+        end else if (dev == "ram") begin
+            `LOAD_IMG("data/simple_head.bin", 0, size)
+            `LOAD_IMG("data/virt.dtb", 'h100, size)
+            $display("###### Simple Head!!!");
         end else begin
             `LOAD_IMG("data/head.bin", 0, size)
             `LOAD_IMG("data/virt.dtb", 'h100, size)

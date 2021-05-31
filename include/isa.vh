@@ -83,4 +83,17 @@ string abi_names[32] = {
     "s10", "s11", "t3", "t4", "t5", "t6"                    /* 26 ~ 31 */
 };
 
+`define LOAD_IMG(filename, base, size) \
+    handle = open_img(filename, base); \
+    if (handle) begin \
+        logic [63:0] addr; \
+        logic [63:0] data; \
+        forever begin \
+            if (load_img(handle, addr, data) < 0) \
+                break; \
+            cells[addr] = data; \
+        end \
+        size = close_img(); \
+    end
+
 `endif

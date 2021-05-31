@@ -1,3 +1,7 @@
+`timescale 1ns / 1ps
+
+`include "isa.vh"
+
 module ram (
     input wire clk,
     input wire rst_n,
@@ -167,5 +171,19 @@ module ram (
                      'h80000000 + mon_put_addr, cells[mon_put_addr[63:3]]);
     end
 `endif
+
+    /* Initialize ram with firmware */
+    initial begin
+        string dev;
+        longint handle;
+        int size = 0;
+
+        dev = getenv("START_DEV");
+        if (dev == "ram") begin
+            `LOAD_IMG("data/fw_jump.bin", 'h0, size)
+            `LOAD_IMG("data/payload.bin", 'h200000, size)
+            $display("###### RAM!!! %x", size);
+        end
+    end
 
 endmodule
