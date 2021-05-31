@@ -9,6 +9,19 @@
 `define E_ECALL_S   64'h9
 `define E_ECALL_M   64'hB
 
+`define SSTATUS     'h100
+`define SEDELEG     'h102
+`define SIDELEG     'h103
+`define SIE         'h104
+`define STVEC       'h105
+`define SCOUNTEREN  'h106
+
+`define SSCRATCH    'h140
+`define SEPC        'h141
+`define SCAUSE      'h142
+`define STVAL       'h143
+`define SIP         'h144
+
 `define SATP        'h180
 
 `define MSTATUS     'h300
@@ -108,12 +121,27 @@ localparam MISA_INIT_VAL = {
 `define MCAUSE_STORE_PAGE_FAULT      64'hf
 
 /* System operation type */
-/* Set these values in e_cause to notify exception */
-`define SYSOP_ECALL     5'h10
-`define SYSOP_EBREAK    5'h11
-`define SYSOP_RET       5'h12
-`define SYSOP_CSR_W     5'h13
-`define SYSOP_CSR_S     5'h14
-`define SYSOP_CSR_C     5'h15
+/* Those value (0x10 ~ 0x1f) according to CAUSE */
+`define SYSOP_INST_ADDR_MISALIGNED  5'h10
+`define SYSOP_INST_ACCESS_FAULT     5'h11
+`define SYSOP_ILLEGAL_INST          5'h12
+`define SYSOP_EBREAK                5'h13
+`define SYSOP_LOAD_ADDR_MISALIGNED  5'h14
+`define SYSOP_LOAD_ACCESS_FAULT     5'h15
+`define SYSOP_STORE_ADDR_MISALIGNED 5'h16
+`define SYSOP_STORE_ACCESS_FAULT    5'h17
+`define SYSOP_ECALL_FROM_U_MODE     5'h18
+`define SYSOP_ECALL_FROM_S_MODE     5'h19
+`define SYSOP_ECALL_FROM_M_MODE     5'h1b
+`define SYSOP_INST_PAGE_FAULT       5'h1c
+`define SYSOP_LOAD_PAGE_FAULT       5'h1d
+`define SYSOP_STORE_PAGE_FAULT      5'h1f
+
+`define SYSOP_NOOP      5'h0
+`define SYSOP_RET       5'h1
+
+`define SYSOP_CSR_W     5'h3
+`define SYSOP_CSR_S     5'h4
+`define SYSOP_CSR_C     5'h5
 
 `endif

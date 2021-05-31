@@ -11,6 +11,7 @@ module dbg_execute (
     input wire [63:0] pc,
     input wire [4:0]  rd,
     input wire [63:0] result,
+    input wire [63:0] data1,
     input wire [63:0] data2,
 
     input wire [4:0]  cause,
@@ -32,8 +33,8 @@ module dbg_execute (
             pending <= 1'b0;
         end else begin
             if (check_verbose(pc)) begin
-                $display($time,, "Execute: [%08x] rd(%s) ret(%0x) data2(%0x) wfi(%0x) load/store(%0x,%0x) branch(%0x) j(%0x) stall(%0x) cause(%0x,%0x)",
-                         pc, abi_names[rd], result, data2,
+                $display($time,, "Execute: [%08x] rd(%s) ret(%0x) data(%0x,%0x) wfi(%0x) load/store(%0x,%0x) branch(%0x) j(%0x) stall(%0x) cause(%0x,%0x)",
+                         pc, abi_names[rd], result, data1, data2,
                          sys_ops.wfi_op,
                          io_ops.load_op, io_ops.store_op,
                          {bj_ops.beq_op, bj_ops.bne_op,

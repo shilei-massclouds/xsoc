@@ -16,6 +16,8 @@ module execute (
 
     input  wire         compressed,
 
+    input  wire [1:0]   priv,
+
     input  wire [63:0]  pc,
     input  wire [4:0]   rd,
     input  wire [63:0]  imm,
@@ -48,6 +50,7 @@ module execute (
 
     csr_ecall u_csr_ecall (
         .sys_ops  (sys_ops  ),
+        .priv     (priv     ),
         .cause_in (cause_in ),
         .tval_in  (tval_in  ),
         .cause_out(_cause   ),
@@ -109,6 +112,7 @@ module execute (
         .pc      (pc        ),
         .rd      (rd        ),
         .result  (result    ),
+        .data1   (data1     ),
         .data2   (fwd2      ),
         .cause   (cause_in  ),
         .tval    (tval_in   ),

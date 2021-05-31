@@ -14,6 +14,7 @@ module cpu (
     tilelink.master ma_phy_bus
 );
 
+    wire [1:0]  priv;
     wire stall;
 
     wire trap_en;
@@ -68,7 +69,7 @@ module cpu (
     wire        ma_page_fault;
     wire [63:0] ma_pf_tval;
 
-    wire [4:0]  cause = ma_page_fault ? `MCAUSE_LOAD_PAGE_FAULT : ma_cause;
+    wire [4:0]  op = ma_page_fault ? `SYSOP_LOAD_PAGE_FAULT : ma_cause;
     wire [63:0] tval = ma_page_fault ? ma_pf_tval : ma_tval;
 
     wire [63:0] csr_data;
@@ -160,6 +161,7 @@ module cpu (
         .bj_ops     (ex_bj_ops  ),
         .sys_ops    (ex_sys_ops ),
         .compressed (ex_comp    ),
+        .priv       (priv       ),
         .pc         (ex_pc      ),
         .rd         (ex_rd      ),
         .imm        (ex_imm     ),
@@ -239,11 +241,12 @@ module cpu (
         .clk      (clk      ),
         .rst_n    (rst_n    ),
         .pc       (ma_pc    ),
-        .cause    (cause    ),
+        .op       (op       ),
         .tval     (tval     ),
         .wdata    (ma_data1 ),
         .rdata    (csr_data ),
         .r_valid  (op_csr   ),
+        .priv     (priv     ),
         .satp     (satp     ),
         .invalid  (invalid  ),
         .trap_en  (trap_en  ),

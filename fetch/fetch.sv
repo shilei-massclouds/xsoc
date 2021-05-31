@@ -34,7 +34,7 @@ module fetch (
     wire inst_comp;
     wire [31:0] _inst;
 
-    wire [4:0]  cause_in = page_fault ? `MCAUSE_INST_PAGE_FAULT : 5'b0;
+    wire [4:0]  cause_in = page_fault ? `SYSOP_INST_PAGE_FAULT : 5'b0;
     wire [63:0] tval_in  = page_fault ? tval : 64'b0;
 
     pc_ctl pc_ctl (
