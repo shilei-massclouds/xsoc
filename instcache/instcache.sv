@@ -175,8 +175,6 @@ module instcache (
                 for (integer i = 0; i < CACHE_DEPTH; i++) begin
                     lines[i] <= {CACHE_WIDTH{1'b0}};
                 end
-                $display($time,, "### invalid State(%x,%x)",
-                         state, next_state);
             end
 
             if (set_addr0 | set_addr1) begin

@@ -107,7 +107,6 @@ module mmu (
     localparam S_PT_DATA  = 4'ha;
 
     always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid) begin
-        //$display($time,, "### State: %0x", state);
         case (state)
             S_IDLE: begin
                 next_state = (paging & virt_bus.a_valid) ? S_PGD : S_IDLE;
@@ -125,15 +124,17 @@ module mmu (
                 end else begin
                     next_state = S_PGD_DATA;
                 end
+                /*
                 $display($time,, "State: S_PGD_DATA: state(%0x,%0x) (%0x,%0x) %0x",
-                         state, next_state, except, leaf, phy_bus.d_data);
+                         state, next_state, except, leaf, phy_bus.d_data);*/
             end
             S_PMD: begin
                 next_state = phy_bus.d_valid ? S_PMD_DATA : S_PMD;
             end
             S_PMD_DATA: begin
+                /*
                 $display($time,, "State: S_PMD_DATA: state(%0x) (%0x,%0x) %0x",
-                         state, except, leaf, phy_bus.d_data);
+                         state, except, leaf, phy_bus.d_data);*/
                 if (except) begin
                     next_state = S_TRAP;
                 end else if (leaf) begin
@@ -148,8 +149,9 @@ module mmu (
                 next_state = phy_bus.d_valid ? S_PT_DATA : S_PT;
             end
             S_PT_DATA: begin
+                /*
                 $display($time,, "State: S_PT: state(%0x) (%0x,%0x) %0x",
-                         state, except, leaf, phy_bus.d_data);
+                         state, except, leaf, phy_bus.d_data);*/
                 if (leaf) begin
                     next_state = S_ADDR;
                 end else begin
@@ -160,12 +162,12 @@ module mmu (
                 next_state = phy_bus.d_valid ? S_DATA : S_ADDR;
             end
             S_DATA: begin
-                $display($time,, "State: S_DATA: state(%0x) %0x",
-                         state, virt_bus.d_ready);
+                /*$display($time,, "State: S_DATA: state(%0x) %0x",
+                         state, virt_bus.d_ready);*/
                 next_state = virt_bus.d_ready ? S_IDLE : S_DATA;
             end
             S_TRAP: begin
-                $display($time,, "State: S_TRAP", state);
+                /*$display($time,, "State: S_TRAP", state);*/
                 next_state = S_IDLE;
             end
             default: begin
@@ -180,7 +182,6 @@ module mmu (
             tval <= 64'b0;
             pte <= 64'b0;
         end else begin
-            //$display($time,, "state: %0x", state);
             case (state)
                 S_IDLE: begin
                     if (paging & virt_bus.a_valid) begin
@@ -211,8 +212,9 @@ module mmu (
                     end
                 end
                 S_PGD: begin
+                    /*
                     $display($time,, "S_PGD: %0x, %0x ori(%0x)",
-                             a_address, root_ppn, ori_a_address);
+                             a_address, root_ppn, ori_a_address);*/
 
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
@@ -221,8 +223,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PGD_DATA: begin
-                    $display($time,, "S_PGD_DATA: pte(%0x,%0x) ori(%0x)",
-                             pte, except, ori_a_address);
+                    /*$display($time,, "S_PGD_DATA: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);*/
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -246,8 +248,8 @@ module mmu (
                     end
                 end
                 S_PMD: begin
-                    $display($time,, "S_PMD: %0x, %0x ori(%0x)",
-                             a_address, root_ppn, ori_a_address);
+                    /*$display($time,, "S_PMD: %0x, %0x ori(%0x)",
+                             a_address, root_ppn, ori_a_address);*/
 
                     if (phy_bus.a_ready)
                         a_valid <= `FALSE;
@@ -256,8 +258,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PMD_DATA: begin
-                    $display($time,, "S_PMD_DATA: pte(%0x,%0x) ori(%0x)",
-                             pte, except, ori_a_address);
+                    /*$display($time,, "S_PMD_DATA: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);*/
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -288,8 +290,8 @@ module mmu (
                         pte <= phy_bus.d_data;
                 end
                 S_PT_DATA: begin
-                    $display($time,, "S_PT: pte(%0x,%0x) ori(%0x)",
-                             pte, except, ori_a_address);
+                    /*$display($time,, "S_PT: pte(%0x,%0x) ori(%0x)",
+                             pte, except, ori_a_address);*/
                     if (except) begin
                         page_fault <= `ENABLE;
                         tval <= ori_a_address;
@@ -308,8 +310,8 @@ module mmu (
                     end
                 end
                 S_ADDR: begin
-                    $display($time,, "S_ADDR: (%0x:%0x)",
-                             phy_bus.d_data, phy_bus.d_valid);
+                    /*$display($time,, "S_ADDR: (%0x:%0x)",
+                             phy_bus.d_data, phy_bus.d_valid);*/
 
                     d_ready <= `TRUE;
 
@@ -331,7 +333,7 @@ module mmu (
                     end
                 end
                 S_DATA: begin
-                    $display($time,, "S_DATA: %0x", d_data);
+                    /*$display($time,, "S_DATA: %0x", d_data);*/
                     /* Clear all phy_bus reply */
                     d_opcode  <= 3'b0;
                     d_param   <= 2'b0;

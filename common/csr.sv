@@ -81,9 +81,6 @@ module csr (
                     csr[`MSTATUS][`MS_MPP] <= _priv;
                     _priv <= `M_MODE;
                 end
-
-                $display($time,, "Except(%0x): tvec(%0x); medeleg(%0x:%0x)",
-                         op, tvec, csr[`MEDELEG], medeleg);
             end else if (op == `SYSOP_RET) begin
                 if (_priv == `S_MODE) begin
                     csr[`SSTATUS][`MS_SIE] <= csr[`SSTATUS][`MS_SPIE];
@@ -93,13 +90,10 @@ module csr (
                     _priv <= csr[`MSTATUS][`MS_MPP];
                 end
             end else if (op == `SYSOP_CSR_W) begin
-                $display($time,, "CSRW write[%0x]: %0x", tval, wdata);
                 csr[tval] <= wdata;
             end else if (op == `SYSOP_CSR_S) begin
-                $display($time,, "CSRS write[%0x]: %0x", tval, wdata);
                 csr[tval] <= csr[tval] | wdata;
             end else if (op == `SYSOP_CSR_C) begin
-                $display($time,, "CSRC write[%0x]: %0x", tval, wdata);
                 csr[tval] <= csr[tval] & ~wdata;
             end
         end
