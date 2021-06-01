@@ -41,8 +41,11 @@ module csr (
     assign invalid = r_valid & (tval == `SATP);
     assign trap_en = (except || (op == `SYSOP_RET) || invalid);
 
-    assign trap_pc = except ? csr[`MTVEC] :
-                     (op == `SYSOP_RET) ? csr[`MEPC] :
+    wire [63:0] tvec = medeleg ? csr[`STVEC] : csr[`MTVEC];
+    wire [63:0] epc = (_priv == `S_MODE) ? csr[`SEPC] : csr[`MEPC];
+
+    assign trap_pc = except ? tvec :
+                     (op == `SYSOP_RET) ? epc :
                      invalid ? (pc + 4) : 64'b0;
 
     always @(posedge clk, negedge rst_n) begin
@@ -51,22 +54,44 @@ module csr (
             csr[`MISA] <= MISA_INIT_VAL;
         end else begin
             if (except) begin
-                csr[`MCAUSE] <= {60'b0, cause};
+                if (medeleg) begin
+                    csr[`SCAUSE] <= {60'b0, cause};
 
-                csr[`MEPC] <= pc;
-                csr[`MTVAL] <= tval;
+                    csr[`SEPC] <= pc;
+                    csr[`STVAL] <= tval;
 
-                csr[`MSTATUS][`MS_MPIE] <= csr[`MSTATUS][`MS_MIE];
-                csr[`MSTATUS][`MS_MIE] <= `DISABLE;
+                    csr[`SSTATUS][`MS_SPIE] <= csr[`SSTATUS][`MS_SIE];
+                    csr[`SSTATUS][`MS_SIE] <= `DISABLE;
 
-                csr[`MSTATUS][`MS_MPP] <= _priv;
-                _priv <= `M_MODE;
+                    if (_priv == `U_MODE)
+                        csr[`SSTATUS][`MS_SPP] <= 1'b0;
+                    else
+                        csr[`SSTATUS][`MS_SPP] <= 1'b1;
+
+                    _priv <= `S_MODE;
+                end else begin
+                    csr[`MCAUSE] <= {60'b0, cause};
+
+                    csr[`MEPC] <= pc;
+                    csr[`MTVAL] <= tval;
+
+                    csr[`MSTATUS][`MS_MPIE] <= csr[`MSTATUS][`MS_MIE];
+                    csr[`MSTATUS][`MS_MIE] <= `DISABLE;
+
+                    csr[`MSTATUS][`MS_MPP] <= _priv;
+                    _priv <= `M_MODE;
+                end
 
                 $display($time,, "Except(%0x): tvec(%0x); medeleg(%0x:%0x)",
-                         op, csr[`MTVEC], csr[`MEDELEG], medeleg);
+                         op, tvec, csr[`MEDELEG], medeleg);
             end else if (op == `SYSOP_RET) begin
-                csr[`MSTATUS][`MS_MIE] <= csr[`MSTATUS][`MS_MPIE];
-                _priv <= csr[`MSTATUS][`MS_MPP];
+                if (_priv == `S_MODE) begin
+                    csr[`SSTATUS][`MS_SIE] <= csr[`SSTATUS][`MS_SPIE];
+                    _priv <= csr[`SSTATUS][`MS_SPP] ? `S_MODE : `U_MODE;
+                end else begin
+                    csr[`MSTATUS][`MS_MIE] <= csr[`MSTATUS][`MS_MPIE];
+                    _priv <= csr[`MSTATUS][`MS_MPP];
+                end
             end else if (op == `SYSOP_CSR_W) begin
                 $display($time,, "CSRW write[%0x]: %0x", tval, wdata);
                 csr[tval] <= wdata;

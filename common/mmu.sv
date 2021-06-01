@@ -237,7 +237,7 @@ module mmu (
                         a_param   <= ori_a_param;
                         a_size    <= ori_a_size;
                         a_source  <= ori_a_source;
-                        a_address <= {pte[53:10], ori_a_address[11:0]};
+                        a_address <= {pte[53:28], ori_a_address[29:0]};
                         a_mask    <= ori_a_mask;
                         a_data    <= ori_a_data;
                         a_corrupt <= ori_a_corrupt;
@@ -272,7 +272,7 @@ module mmu (
                         a_param   <= ori_a_param;
                         a_size    <= ori_a_size;
                         a_source  <= ori_a_source;
-                        a_address <= {pte[53:10], ori_a_address[11:0]};
+                        a_address <= {pte[53:19], ori_a_address[20:0]};
                         a_mask    <= ori_a_mask;
                         a_data    <= ori_a_data;
                         a_corrupt <= ori_a_corrupt;
@@ -310,6 +310,8 @@ module mmu (
                 S_ADDR: begin
                     $display($time,, "S_ADDR: (%0x:%0x)",
                              phy_bus.d_data, phy_bus.d_valid);
+
+                    d_ready <= `TRUE;
 
                     if (phy_bus.a_ready) begin
                         a_valid <= `FALSE;

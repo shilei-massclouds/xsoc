@@ -94,8 +94,13 @@ localparam MISA_INIT_VAL = {
 };
 
 /* MSTATUS bits */
+`define MS_UIE      0
+`define MS_SIE      1
 `define MS_MIE      3
+`define MS_UPIE     4
+`define MS_SPIE     5
 `define MS_MPIE     7
+`define MS_SPP      8
 `define MS_MPP      12:11
 
 `define MCAUSE_S_SOFTWARE_INTR  {1'b1, 63'h1}
