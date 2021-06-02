@@ -150,7 +150,7 @@ module dec32 (
                       ~(ra_lr | ra_sc);
 
     assign alu_ops.add_op    = rv_add | rv_addw | rv_addi | rv_addiw |
-                               op_load | op_store | ra_lr | ra_sc;
+                               op_load | op_store;
     assign alu_ops.sub_op    = rv_sub | rv_subw;
     assign alu_ops.and_op    = rv_and | rv_andi;
     assign alu_ops.or_op     = rv_or | rv_ori;

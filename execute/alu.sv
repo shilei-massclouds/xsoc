@@ -31,7 +31,8 @@ module alu (
                   io_ops.amo_min_op | io_ops.amo_max_op |
                   io_ops.amo_minu_op | io_ops.amo_maxu_op |
                   io_ops.amo_xor_op | io_ops.amo_or_op |
-                  io_ops.amo_and_op | io_ops.amo_swap_op;
+                  io_ops.amo_and_op | io_ops.amo_swap_op |
+                  io_ops.lr_op | io_ops.sc_op;
 
     wire blt_bge = bj_ops.blt_op | bj_ops.bge_op |
                    bj_ops.bltu_op | bj_ops.bgeu_op;

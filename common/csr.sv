@@ -90,6 +90,9 @@ module csr (
                     _priv <= csr[`MSTATUS][`MS_MPP];
                 end
             end else if (op == `SYSOP_CSR_W) begin
+                if (tval == 0)
+                    $display($time,, "DEBUG: %x", wdata);
+
                 csr[tval] <= wdata;
             end else if (op == `SYSOP_CSR_S) begin
                 csr[tval] <= csr[tval] | wdata;
