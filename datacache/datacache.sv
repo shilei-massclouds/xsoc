@@ -6,6 +6,8 @@ module datacache (
     input   wire    clk,
     input   wire    rst_n,
 
+    input   wire    invalid,
+
     input   wire    [63:0] pc,
 
     io_ops.dst      io_ops,
@@ -67,6 +69,12 @@ module datacache (
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
         end else begin
+            if (invalid) begin
+                for (integer i = 0; i < CACHE_DEPTH; i++) begin
+                    lines[i] <= {CACHE_WIDTH{1'b0}};
+                end
+            end
+
             if (update) begin
                 if (opcode == `TL_ACCESS_ACK_DATA)
                     lines[index] <= {1'b1, tag, update_data};

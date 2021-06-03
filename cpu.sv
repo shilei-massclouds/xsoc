@@ -194,6 +194,7 @@ module cpu (
         .data2    (ma_data2     ),
         .csr_data (csr_data     ),
         .op_csr   (op_csr       ),
+        .invalid  (invalid      ),
         .ma_out   (ma_out       ),
         .pc_out   (wb_pc        ),
         .rd_out   (wb_rd        ),

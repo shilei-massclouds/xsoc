@@ -26,6 +26,8 @@ module access (
     input  wire [63:0]  csr_data,
     input  wire         op_csr,
 
+    input  wire         invalid,
+
     output wire [63:0]  ma_out,
 
     output wire [63:0]  pc_out,
@@ -50,6 +52,7 @@ module access (
     datacache u_datacache (
         .clk         (clk         ),
         .rst_n       (rst_n       ),
+        .invalid     (invalid     ),
         .pc          (pc          ),
         .io_ops      (io_ops      ),
         .addr        (result      ),
