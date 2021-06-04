@@ -11,6 +11,14 @@ module mmu (
 
     input  wire [63:0]  satp,
 
+    output wire [26:0]  tlb_addr,
+
+    input  wire [43:0]  tlb_rdata,
+    input  wire         tlb_hit,
+
+    output reg  [43:0]  tlb_wdata,
+    output reg          tlb_update,
+
     output reg          page_fault,
     output reg  [63:0]  tval,
 
@@ -40,16 +48,16 @@ module mmu (
     bit           d_valid;
     bit           d_ready;
 
-    reg [2:0]     ori_a_opcode;
-    reg [2:0]     ori_a_param;
-    reg [2:0]     ori_a_size;
-    reg [3:0]     ori_a_source;
-    reg [63:0]    ori_a_address;
-    reg [7:0]     ori_a_mask;
-    reg [63:0]    ori_a_data;
-    reg           ori_a_corrupt;
-    reg           ori_a_valid;
-    reg           ori_d_ready;
+    bit [2:0]     ori_a_opcode;
+    bit [2:0]     ori_a_param;
+    bit [2:0]     ori_a_size;
+    bit [3:0]     ori_a_source;
+    bit [63:0]    ori_a_address;
+    bit [7:0]     ori_a_mask;
+    bit [63:0]    ori_a_data;
+    bit           ori_a_corrupt;
+    bit           ori_a_valid;
+    bit           ori_d_ready;
 
     wire paging = ~(satp[63:60] == 4'h0);
     wire [43:0] root_ppn = satp[43:0];
@@ -106,10 +114,17 @@ module mmu (
     localparam S_PMD_DATA = 4'h9;
     localparam S_PT_DATA  = 4'ha;
 
-    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid) begin
+    assign tlb_addr = (state == S_IDLE) ? virt_bus.a_address[38:12] :
+                                          ori_a_address[38:12];
+
+    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid, tlb_hit) begin
         case (state)
             S_IDLE: begin
-                next_state = (paging & virt_bus.a_valid) ? S_PGD : S_IDLE;
+                if (paging & virt_bus.a_valid) begin
+                    next_state = tlb_hit ? S_ADDR : S_PGD;
+                end else begin
+                    next_state = S_IDLE;
+                end
             end
             S_PGD: begin
                 next_state = phy_bus.d_valid ? S_PGD_DATA : S_PGD;
@@ -181,34 +196,55 @@ module mmu (
             page_fault <= 1'b0;
             tval <= 64'b0;
             pte <= 64'b0;
+            tlb_update <= `DISABLE;
+            tlb_wdata <= 44'b0;
         end else begin
             case (state)
                 S_IDLE: begin
                     if (paging & virt_bus.a_valid) begin
-                        /* Save virt_bus request */
-                        ori_a_opcode  <= virt_bus.a_opcode;
-                        ori_a_param   <= virt_bus.a_param;
-                        ori_a_size    <= virt_bus.a_size;
-                        ori_a_source  <= virt_bus.a_source;
-                        ori_a_address <= virt_bus.a_address;
-                        ori_a_mask    <= virt_bus.a_mask;
-                        ori_a_data    <= virt_bus.a_data;
-                        ori_a_corrupt <= virt_bus.a_corrupt;
-                        ori_a_valid   <= virt_bus.a_valid;
-                        ori_d_ready   <= virt_bus.d_ready;
+                        if (tlb_hit) begin
+                            /* Prepare to look up data directly */
+                            /*$display($time,, "tlb_hit: (%x: %x)",
+                                     virt_bus.a_address, tlb_rdata);*/
 
-                        /* Prepare to look up pgd */
-                        a_opcode <= `TL_GET;
-                        a_param <= 3'b0;
-                        a_size <= 3;
-                        a_source <= 4'b0000;
-                        a_address <= {root_ppn, virt_bus.a_address[38:30],
-                                      3'b0};
-                        a_mask <= 8'hFF;
-                        a_data <= 64'b0;
-                        a_corrupt <= 1'b0;
-                        a_valid <= `TRUE;
-                        d_ready <= `TRUE;
+                            a_opcode  <= virt_bus.a_opcode;
+                            a_param   <= virt_bus.a_param;
+                            a_size    <= virt_bus.a_size;
+                            a_source  <= virt_bus.a_source;
+                            a_address <= {tlb_rdata, virt_bus.a_address[11:0]};
+                            a_mask    <= virt_bus.a_mask;
+                            a_data    <= virt_bus.a_data;
+                            a_corrupt <= virt_bus.a_corrupt;
+                            a_valid   <= virt_bus.a_valid;
+                            d_ready   <= virt_bus.d_ready;
+                        end else begin
+                            /* Save virt_bus request */
+                            /*$display($time,, "not tlb_hit: (%x:)",
+                                     virt_bus.a_address);*/
+                            ori_a_opcode  <= virt_bus.a_opcode;
+                            ori_a_param   <= virt_bus.a_param;
+                            ori_a_size    <= virt_bus.a_size;
+                            ori_a_source  <= virt_bus.a_source;
+                            ori_a_address <= virt_bus.a_address;
+                            ori_a_mask    <= virt_bus.a_mask;
+                            ori_a_data    <= virt_bus.a_data;
+                            ori_a_corrupt <= virt_bus.a_corrupt;
+                            ori_a_valid   <= virt_bus.a_valid;
+                            ori_d_ready   <= virt_bus.d_ready;
+
+                            /* Prepare to look up pgd */
+                            a_opcode <= `TL_GET;
+                            a_param <= 3'b0;
+                            a_size <= 3;
+                            a_source <= 4'b0000;
+                            a_address <= {root_ppn, virt_bus.a_address[38:30],
+                                        3'b0};
+                            a_mask <= 8'hFF;
+                            a_data <= 64'b0;
+                            a_corrupt <= 1'b0;
+                            a_valid <= `TRUE;
+                            d_ready <= `TRUE;
+                        end
                     end
                 end
                 S_PGD: begin
@@ -245,6 +281,9 @@ module mmu (
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
                         d_ready   <= ori_d_ready;
+
+                        tlb_wdata <= {pte[53:28], ori_a_address[29:12]};
+                        tlb_update <= `ENABLE;
                     end
                 end
                 S_PMD: begin
@@ -280,6 +319,9 @@ module mmu (
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
                         d_ready   <= ori_d_ready;
+
+                        tlb_wdata <= {pte[53:19], ori_a_address[20:12]};
+                        tlb_update <= `ENABLE;
                     end
                 end
                 S_PT: begin
@@ -307,11 +349,16 @@ module mmu (
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
                         d_ready   <= ori_d_ready;
+
+                        tlb_wdata <= pte[53:10];
+                        tlb_update <= `ENABLE;
                     end
                 end
                 S_ADDR: begin
                     /*$display($time,, "S_ADDR: (%0x:%0x)",
                              phy_bus.d_data, phy_bus.d_valid);*/
+                    tlb_update <= `DISABLE;
+                    tlb_wdata <= 44'b0;
 
                     d_ready <= `TRUE;
 

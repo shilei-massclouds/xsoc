@@ -76,6 +76,18 @@ module cpu (
     wire        op_csr;
     wire [63:0] satp;
 
+    wire [26:0]  if_tlb_addr;
+    wire [43:0]  if_tlb_rdata;
+    wire         if_tlb_hit;
+    wire [43:0]  if_tlb_wdata;
+    wire         if_tlb_update;
+
+    wire [26:0]  ma_tlb_addr;
+    wire [43:0]  ma_tlb_rdata;
+    wire         ma_tlb_hit;
+    wire [43:0]  ma_tlb_wdata;
+    wire         ma_tlb_update;
+
     alu_ops ex_alu_ops();
     io_ops  ex_io_ops();
     bj_ops  ex_bj_ops();
@@ -112,6 +124,11 @@ module cpu (
         .clk        (clk            ),
         .rst_n      (rst_n          ),
         .satp       (satp           ),
+        .tlb_addr   (if_tlb_addr    ),
+        .tlb_rdata  (if_tlb_rdata   ),
+        .tlb_hit    (if_tlb_hit     ),
+        .tlb_wdata  (if_tlb_wdata   ),
+        .tlb_update (if_tlb_update  ),
         .page_fault (if_page_fault  ),
         .tval       (if_pf_tval     ),
         .virt_bus   (if_virt_bus    ),
@@ -208,6 +225,11 @@ module cpu (
         .clk        (clk            ),
         .rst_n      (rst_n          ),
         .satp       (satp           ),
+        .tlb_addr   (ma_tlb_addr    ),
+        .tlb_rdata  (ma_tlb_rdata   ),
+        .tlb_hit    (ma_tlb_hit     ),
+        .tlb_wdata  (ma_tlb_wdata   ),
+        .tlb_update (ma_tlb_update  ),
         .page_fault (ma_page_fault  ),
         .tval       (ma_pf_tval     ),
         .virt_bus   (ma_virt_bus    ),
@@ -252,6 +274,22 @@ module cpu (
         .invalid  (invalid  ),
         .trap_en  (trap_en  ),
         .trap_pc  (trap_pc  )
+    );
+
+    tlb u_tlb (
+        .clk       (clk           ),
+        .rst_n     (rst_n         ),
+        .invalid   (invalid       ),
+        .if_addr   (if_tlb_addr   ),
+        .if_rdata  (if_tlb_rdata  ),
+        .if_hit    (if_tlb_hit    ),
+        .if_wdata  (if_tlb_wdata  ),
+        .if_update (if_tlb_update ),
+        .ma_addr   (ma_tlb_addr   ),
+        .ma_rdata  (ma_tlb_rdata  ),
+        .ma_hit    (ma_tlb_hit    ),
+        .ma_wdata  (ma_tlb_wdata  ),
+        .ma_update (ma_tlb_update )
     );
 
     dbg_regfile u_dbg_regfile (
