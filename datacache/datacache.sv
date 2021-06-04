@@ -76,10 +76,10 @@ module datacache (
             end
 
             if (update) begin
-                if (opcode == `TL_ACCESS_ACK_DATA)
+                if (io_ops.load_op)
                     lines[index] <= {1'b1, tag, update_data};
                 else
-                    lines[index] <= 64'b0;
+                    lines[index] <= {CACHE_WIDTH{1'b0}};
             end
         end
     end

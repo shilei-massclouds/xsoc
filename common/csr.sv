@@ -102,4 +102,13 @@ module csr (
         end
     end
 
+    dbg_csr u_dbg_csr (
+        .clk     (clk     ),
+        .rst_n   (rst_n   ),
+        .pc      (pc      ),
+        .except  (except  ),
+        .medeleg (medeleg ),
+        .tvec    (tvec    )
+    );
+
 endmodule
