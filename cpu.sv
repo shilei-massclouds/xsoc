@@ -25,6 +25,8 @@ module cpu (
 
     wire [31:0] inst;
 
+    wire [63:0] if_pc;
+
     wire [63:0] id_pc;
     wire [4:0]  id_rs1;
     wire [4:0]  id_rs2;
@@ -112,8 +114,9 @@ module cpu (
         .invalid    (invalid   ),
         .page_fault (if_page_fault),
         .tval       (if_pf_tval),
-        .inst       (inst      ),
-        .pc         (id_pc     ),
+        .if_pc      (if_pc     ),
+        .inst_out   (inst      ),
+        .pc_out     (id_pc     ),
         .cause_out  (id_cause  ),
         .tval_out   (id_tval   ),
         .request    (if_request),
@@ -123,7 +126,10 @@ module cpu (
     mmu u_if_mmu (
         .clk        (clk            ),
         .rst_n      (rst_n          ),
+        .pc         (if_pc          ),
+        .priv       (priv           ),
         .satp       (satp           ),
+        .invalid    (invalid        ),
         .tlb_addr   (if_tlb_addr    ),
         .tlb_rdata  (if_tlb_rdata   ),
         .tlb_hit    (if_tlb_hit     ),
@@ -224,7 +230,10 @@ module cpu (
     mmu u_ma_mmu (
         .clk        (clk            ),
         .rst_n      (rst_n          ),
+        .pc         (ma_pc          ),
+        .priv       (priv           ),
         .satp       (satp           ),
+        .invalid    (invalid        ),
         .tlb_addr   (ma_tlb_addr    ),
         .tlb_rdata  (ma_tlb_rdata   ),
         .tlb_hit    (ma_tlb_hit     ),

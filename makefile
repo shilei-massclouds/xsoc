@@ -24,7 +24,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ${COMMON_DIR}/zero_page.sv \
 	  ${COMMON_DIR}/forward.sv \
 	  ${COMMON_DIR}/csr.sv ${COMMON_DIR}/dbg_csr.sv \
-	  ${COMMON_DIR}/mmu.sv ${COMMON_DIR}/tlb.sv \
+	  ${COMMON_DIR}/mmu.sv ${COMMON_DIR}/tlb.sv ${COMMON_DIR}/dbg_mmu.sv \
 	  ${COMMON_DIR}/alu_ops.sv ${COMMON_DIR}/io_ops.sv \
 	  ${COMMON_DIR}/bj_ops.sv ${COMMON_DIR}/sys_ops.sv \
 	  ${COMMON_DIR}/load.c ${COMMON_DIR}/debug.c
@@ -38,11 +38,11 @@ build: head
 
 test: build
 	make -C tests
-	TEST=tests/calc_add ${SIM}
-	TEST=tests/mem_sw_lw ${SIM}
-	TEST=tests/bj_ge ${SIM}
-	TEST=tests/j ${SIM}
-	TEST=tests/rom_load ${SIM}
-	TEST=tests/uart_wr ${SIM}
+	#TEST=tests/calc_add ${SIM}
+	#TEST=tests/mem_sw_lw ${SIM}
+	#TEST=tests/bj_ge ${SIM}
+	#TEST=tests/j ${SIM}
+	#TEST=tests/rom_load ${SIM}
+	#TEST=tests/uart_wr ${SIM}
 	TEST=tests/paging ${SIM}
-	TEST=tests/lr_sc ${SIM}
+	#TEST=tests/lr_sc ${SIM}

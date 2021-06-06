@@ -38,7 +38,12 @@ module csr (
     wire [3:0] cause = op[3:0];
     wire medeleg = csr[`MEDELEG][cause];
 
-    assign invalid = r_valid & (tval == `SATP);
+    assign invalid =
+        (r_valid & (tval == `SATP)) |
+        (except & ~medeleg) |
+        ((op == `SYSOP_RET) &
+         (_priv == `M_MODE) & (csr[`MSTATUS][`MS_MPP] != `M_MODE));
+
     assign trap_en = (except || (op == `SYSOP_RET) || invalid);
 
     wire [63:0] tvec = medeleg ? csr[`STVEC] : csr[`MTVEC];

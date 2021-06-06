@@ -9,7 +9,11 @@ module mmu (
     input  wire         clk,
     input  wire         rst_n,
 
+    input  wire [63:0]  pc,
+
+    input  wire [1:0]   priv,
     input  wire [63:0]  satp,
+    input  wire         invalid,
 
     output wire [26:0]  tlb_addr,
 
@@ -46,7 +50,8 @@ module mmu (
     bit [63:0]    d_data;
     bit           d_corrupt;
     bit           d_valid;
-    bit           d_ready;
+
+    wire          d_ready = `TRUE;
 
     bit [2:0]     ori_a_opcode;
     bit [2:0]     ori_a_param;
@@ -57,9 +62,8 @@ module mmu (
     bit [63:0]    ori_a_data;
     bit           ori_a_corrupt;
     bit           ori_a_valid;
-    bit           ori_d_ready;
 
-    wire paging = ~(satp[63:60] == 4'h0);
+    wire paging = (priv == `S_MODE) & ~(satp[63:60] == 4'h0);
     wire [43:0] root_ppn = satp[43:0];
 
     logic [3:0] state, next_state;
@@ -117,10 +121,10 @@ module mmu (
     assign tlb_addr = (state == S_IDLE) ? virt_bus.a_address[38:12] :
                                           ori_a_address[38:12];
 
-    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid, tlb_hit) begin
+    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid, tlb_hit, invalid) begin
         case (state)
             S_IDLE: begin
-                if (paging & virt_bus.a_valid) begin
+                if (~invalid & paging & virt_bus.a_valid) begin
                     next_state = tlb_hit ? S_ADDR : S_PGD;
                 end else begin
                     next_state = S_IDLE;
@@ -201,7 +205,7 @@ module mmu (
         end else begin
             case (state)
                 S_IDLE: begin
-                    if (paging & virt_bus.a_valid) begin
+                    if (~invalid & paging & virt_bus.a_valid) begin
                         if (tlb_hit) begin
                             /* Prepare to look up data directly */
                             /*$display($time,, "tlb_hit: (%x: %x)",
@@ -216,7 +220,6 @@ module mmu (
                             a_data    <= virt_bus.a_data;
                             a_corrupt <= virt_bus.a_corrupt;
                             a_valid   <= virt_bus.a_valid;
-                            d_ready   <= virt_bus.d_ready;
                         end else begin
                             /* Save virt_bus request */
                             /*$display($time,, "not tlb_hit: (%x:)",
@@ -230,7 +233,6 @@ module mmu (
                             ori_a_data    <= virt_bus.a_data;
                             ori_a_corrupt <= virt_bus.a_corrupt;
                             ori_a_valid   <= virt_bus.a_valid;
-                            ori_d_ready   <= virt_bus.d_ready;
 
                             /* Prepare to look up pgd */
                             a_opcode <= `TL_GET;
@@ -243,7 +245,6 @@ module mmu (
                             a_data <= 64'b0;
                             a_corrupt <= 1'b0;
                             a_valid <= `TRUE;
-                            d_ready <= `TRUE;
                         end
                     end
                 end
@@ -280,7 +281,6 @@ module mmu (
                         a_data    <= ori_a_data;
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
-                        d_ready   <= ori_d_ready;
 
                         tlb_wdata <= {pte[53:28], ori_a_address[29:12]};
                         tlb_update <= `ENABLE;
@@ -318,7 +318,6 @@ module mmu (
                         a_data    <= ori_a_data;
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
-                        d_ready   <= ori_d_ready;
 
                         tlb_wdata <= {pte[53:19], ori_a_address[20:12]};
                         tlb_update <= `ENABLE;
@@ -348,7 +347,6 @@ module mmu (
                         a_data    <= ori_a_data;
                         a_corrupt <= ori_a_corrupt;
                         a_valid   <= ori_a_valid;
-                        d_ready   <= ori_d_ready;
 
                         tlb_wdata <= pte[53:10];
                         tlb_update <= `ENABLE;
@@ -359,8 +357,6 @@ module mmu (
                              phy_bus.d_data, phy_bus.d_valid);*/
                     tlb_update <= `DISABLE;
                     tlb_wdata <= 44'b0;
-
-                    d_ready <= `TRUE;
 
                     if (phy_bus.a_ready) begin
                         a_valid <= `FALSE;
@@ -392,15 +388,40 @@ module mmu (
                     d_corrupt <= 1'b0;
                     d_valid   <= 1'b0;
                     a_ready   <= 1'b0;
+
+                    a_opcode  <= 3'b0;
+                    a_param   <= 3'b0;
+                    a_size    <= 3'b0;
+                    a_source  <= 4'b0;
+                    a_address <= 64'b0;
+                    a_mask    <= 8'b0;
+                    a_data    <= 64'b0;
+                    a_corrupt <= 1'b0;
+                    a_valid   <= 1'b0;
+                    a_ready   <= 1'b0;
+
+                    ori_a_address <= 64'b0;
                 end
                 S_TRAP: begin
                     page_fault <= `DISABLE;
                     tval <= 64'b0;
+                    ori_a_address <= 64'b0;
                 end
                 default: begin
                 end
             endcase
         end
     end
+
+    dbg_mmu u_dbg_mmu (
+    	.clk        (clk        ),
+        .rst_n      (rst_n      ),
+        .pc         (pc         ),
+        .state      (state      ),
+        .next_state (next_state ),
+        .addr       (ori_a_address),
+        .pte        (pte        ),
+        .invalid    (invalid    )
+    );
 
 endmodule

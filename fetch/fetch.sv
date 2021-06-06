@@ -19,8 +19,10 @@ module fetch (
     input   wire    page_fault,
     input   wire    [63:0] tval,
 
-    output  wire    [31:0] inst,
-    output  wire    [63:0] pc,
+    output  wire    [63:0] if_pc,
+
+    output  wire    [31:0] inst_out,
+    output  wire    [63:0] pc_out,
 
     output  wire    [4:0]  cause_out,
     output  wire    [63:0] tval_out,
@@ -36,6 +38,8 @@ module fetch (
 
     wire [4:0]  cause_in = page_fault ? `SYSOP_INST_PAGE_FAULT : 5'b0;
     wire [63:0] tval_in  = page_fault ? tval : 64'b0;
+
+    assign if_pc = _pc;
 
     pc_ctl pc_ctl (
         .clk        (clk       ),
@@ -74,8 +78,8 @@ module fetch (
         .pc_in    (_pc      ),
         .cause_in (cause_in ),
         .tval_in  (tval_in  ),
-        .inst_out (inst     ),
-        .pc_out   (pc       ),
+        .inst_out (inst_out ),
+        .pc_out   (pc_out   ),
         .cause_out(cause_out),
         .tval_out (tval_out )
     );

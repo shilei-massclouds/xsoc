@@ -59,7 +59,6 @@ module access (
         .data        (cache_out   ),
         .hit         (hit         ),
         .update      (update      ),
-        .opcode      (bus.d_opcode),
         .update_data (bus.d_data  )
     );
 

@@ -93,10 +93,12 @@ module instcache (
                 end
             end
             S_ADDR:
-                next_state = page_fault ? S_CACHE :
+                next_state = (invalid | page_fault) ? S_CACHE :
                              bus.a_ready ? S_DATA : S_ADDR;
             S_DATA:
-                if (bus.d_valid) begin
+                if (invalid) begin
+                    next_state = S_CACHE;
+                end else if (bus.d_valid) begin
                     next_state = last_req ? S_CACHE : S_ADDR;
                 end else begin
                     next_state = S_DATA;
@@ -136,13 +138,15 @@ module instcache (
                 end
             end
             S_ADDR: begin
-                if (page_fault)
+                if (invalid | page_fault)
                     clr_all = `ENABLE;
                 else
                     request = `ENABLE;
             end
             S_DATA: begin
-                if (bus.d_valid) begin
+                if (invalid) begin
+                    clr_all = `ENABLE;
+                end else if (bus.d_valid) begin
                     fillin = `ENABLE;
                     if (last_req)
                         clr_all = `ENABLE;
@@ -158,7 +162,7 @@ module instcache (
     assign bus.a_valid   = (state == S_ADDR) & ~page_fault;
     assign bus.a_address = req_bmp[0] ? req_addr :
                            req_bmp[1] ? req_addr_rest : 64'b0;
-    assign bus.d_ready  = (state == S_DATA);
+    assign bus.d_ready  = `TRUE;
     assign bus.a_opcode = `TL_GET;
     assign bus.a_size = 3;
     assign bus.a_source = 4'b0000;

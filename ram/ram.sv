@@ -24,7 +24,7 @@ module ram (
             S_IDLE:
                 next_state = bus.a_valid ? S_BUSY : S_IDLE;
             S_BUSY:
-                next_state = bus.d_ready ? S_IDLE : S_BUSY;
+                next_state = S_IDLE;
             default:
                 next_state = S_IDLE;
         endcase

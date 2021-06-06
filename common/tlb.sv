@@ -64,15 +64,15 @@ module tlb (
                 for (integer i = 0; i < CACHE_DEPTH; i++) begin
                     lines[i] <= {CACHE_WIDTH{1'b0}};
                 end
+            end else begin
+                assert (~(if_update & ma_update));
+
+                if (if_update)
+                    lines[if_index] <= {1'b1, if_tag, if_wdata};
+
+                if (ma_update)
+                    lines[ma_index] <= {1'b1, ma_tag, ma_wdata};
             end
-
-            assert (~(if_update & ma_update));
-
-            if (if_update)
-                lines[if_index] <= {1'b1, if_tag, if_wdata};
-
-            if (ma_update)
-                lines[ma_index] <= {1'b1, ma_tag, ma_wdata};
         end
     end
 

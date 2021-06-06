@@ -16,7 +16,6 @@ module datacache (
     output  wire    hit,
 
     input   wire    update,
-    input   wire    [2:0] opcode,
     input   wire    [63:0] update_data
 );
 
@@ -73,13 +72,13 @@ module datacache (
                 for (integer i = 0; i < CACHE_DEPTH; i++) begin
                     lines[i] <= {CACHE_WIDTH{1'b0}};
                 end
-            end
-
-            if (update) begin
-                if (io_ops.load_op)
-                    lines[index] <= {1'b1, tag, update_data};
-                else
-                    lines[index] <= {CACHE_WIDTH{1'b0}};
+            end else begin
+                if (update) begin
+                    if (io_ops.load_op)
+                        lines[index] <= {1'b1, tag, update_data};
+                    else
+                        lines[index] <= {CACHE_WIDTH{1'b0}};
+                end
             end
         end
     end
