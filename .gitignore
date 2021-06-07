@@ -11,3 +11,4 @@ csrc
 verdiLog
 fpga
 *.bin
+*.dtb

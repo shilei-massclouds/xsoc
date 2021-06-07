@@ -16,6 +16,7 @@ OBJS = $(subst .S,.bin, $(wildcard *.S))
 	$(COPY) -O binary ./$^ ./$@
 
 all:$(OBJS)
+	dtc -I dts -O dtb ./virt.dts > ./virt.dtb
 
 clean:
 	rm -rf ./*.elf ./head.bin
