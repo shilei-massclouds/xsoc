@@ -63,8 +63,11 @@ module ram (
                         {8{a_mask[3]}}, {8{a_mask[2]}},
                         {8{a_mask[1]}}, {8{a_mask[0]}}};
 
-`define DATA_FOR_W ((cells[addr] & ~mask) | (a_data & mask))
-`define DATA_FOR_R ((cells[addr] & mask) >> (8 * offset))
+`define UPDATE_CELL(val) \
+    ((cells[addr] & ~mask) | (((val) << (8 * offset)) & mask))
+
+`define OLDVAL ((cells[addr] & mask) >> (8 * offset))
+`define NEWVAL ((a_data & mask) >> (8 * offset))
 
     logic [63:0] mon_put_addr;
 
@@ -84,7 +87,7 @@ module ram (
                 bus.d_size <= bus.a_size;
                 bus.d_source <= bus.a_source;
                 if (is_put) begin
-                    cells[addr] <= `DATA_FOR_W;
+                    cells[addr] <= (cells[addr] & ~mask) | (a_data & mask);
                     bus.d_opcode <= `TL_ACCESS_ACK;
                     if (bus.a_corrupt)
                         bus.d_data <= 64'b0;
@@ -96,26 +99,27 @@ module ram (
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
                     bus.d_data <= cells[addr];
                     if (bus.a_param == `TL_PARAM_ADD) begin
-                        cells[addr] <= `DATA_FOR_W + `DATA_FOR_R;
+                        cells[addr] <=
+                            `UPDATE_CELL(`OLDVAL + `NEWVAL);
                         mon_put_addr <= bus.a_address;
                     end else if (bus.a_param == `TL_PARAM_MIN) begin
-                        if (compare_lt(`DATA_FOR_W, `DATA_FOR_R, bus.a_size)) begin
-                            cells[addr] <= `DATA_FOR_W;
+                        if (compare_lt(`NEWVAL, `OLDVAL, bus.a_size)) begin
+                            cells[addr] <= `UPDATE_CELL(`NEWVAL);
                             mon_put_addr <= bus.a_address;
                         end
                     end else if (bus.a_param == `TL_PARAM_MAX) begin
-                        if (compare_lt(`DATA_FOR_R, `DATA_FOR_W, bus.a_size)) begin
-                            cells[addr] <= `DATA_FOR_W;
+                        if (compare_lt(`OLDVAL, `NEWVAL, bus.a_size)) begin
+                            cells[addr] <= `UPDATE_CELL(`OLDVAL);
                             mon_put_addr <= bus.a_address;
                         end
                     end else if (bus.a_param == `TL_PARAM_MINU) begin
-                        if (`DATA_FOR_R > `DATA_FOR_W) begin
-                            cells[addr] <= `DATA_FOR_W;
+                        if (`OLDVAL > `NEWVAL) begin
+                            cells[addr] <= `UPDATE_CELL(`NEWVAL);
                             mon_put_addr <= bus.a_address;
                         end
                     end else if (bus.a_param == `TL_PARAM_MAXU) begin
-                        if (`DATA_FOR_R < `DATA_FOR_W) begin
-                            cells[addr] <= `DATA_FOR_W;
+                        if (`OLDVAL < `NEWVAL) begin
+                            cells[addr] <= `UPDATE_CELL(`OLDVAL);
                             mon_put_addr <= bus.a_address;
                         end
                     end
@@ -123,16 +127,16 @@ module ram (
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
                     bus.d_data <= cells[addr];
                     if (bus.a_param == `TL_PARAM_SWAP) begin
-                        cells[addr] <= `DATA_FOR_W;
+                        cells[addr] <= `UPDATE_CELL(`NEWVAL);
                         mon_put_addr <= bus.a_address;
                     end if (bus.a_param == `TL_PARAM_XOR) begin
-                        cells[addr] <= `DATA_FOR_W ^ `DATA_FOR_R;
+                        cells[addr] <= `UPDATE_CELL(`NEWVAL ^ `OLDVAL);
                         mon_put_addr <= bus.a_address;
                     end if (bus.a_param == `TL_PARAM_OR) begin
-                        cells[addr] <= `DATA_FOR_W | `DATA_FOR_R;
+                        cells[addr] <= `UPDATE_CELL(`NEWVAL | `OLDVAL);
                         mon_put_addr <= bus.a_address;
                     end if (bus.a_param == `TL_PARAM_AND) begin
-                        cells[addr] <= `DATA_FOR_W & `DATA_FOR_R;
+                        cells[addr] <= `UPDATE_CELL(`NEWVAL & `OLDVAL);
                         mon_put_addr <= bus.a_address;
                     end
                 end
