@@ -12,7 +12,7 @@ module ram (
     localparam S_BUSY = 1'b1;
 
     /* Datapath: Internal data cells in RAM */
-    reg [63:0] cells[bit[60:0]];
+    reg [63:0] cells[bit[27:0]];
 
     /* Controller */
     logic state, next_state;

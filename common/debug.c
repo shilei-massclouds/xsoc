@@ -4,21 +4,17 @@
 int
 check_verbose(uint64_t pc)
 {
-    static int _check = 0;
+    uint64_t r_start = 0;
+    uint64_t r_end = 0;
 
     if (getenv("VERBOSE") == NULL)
         return 0;
 
-    if (!_check && getenv("START"))
-        if (pc == strtoul(getenv("START"), NULL, 16))
-            _check = 1;
+    if (getenv("START") && getenv("END")) {
+        r_start = strtoul(getenv("START"), NULL, 16);
+        r_end = strtoul(getenv("END"), NULL, 16);
+    }
 
-    if (_check && getenv("END"))
-        if (pc == strtoul(getenv("END"), NULL, 16))
-            _check = 0;
-
-    if (!getenv("START") && !getenv("END"))
-        _check = 1;
-
-    return _check;
+    return ((!r_start && !r_end) || (r_start <= pc && pc <= r_end));
 }
+

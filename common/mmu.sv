@@ -453,7 +453,8 @@ module mmu (
         .next_state (next_state ),
         .addr       (ori_a_address),
         .pte        (pte        ),
-        .invalid    (invalid    )
+        .invalid    (invalid    ),
+        .tlb_hit    (tlb_hit    )
     );
 
 endmodule
