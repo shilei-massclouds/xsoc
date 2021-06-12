@@ -121,7 +121,8 @@ module mmu (
     assign tlb_addr = (state == S_IDLE) ? virt_bus.a_address[38:12] :
                                           ori_a_address[38:12];
 
-    always @(state, satp, pte, virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid, tlb_hit, invalid) begin
+    always @(state, paging, pte, tlb_hit, invalid,
+             virt_bus.a_valid, virt_bus.d_ready, phy_bus.d_valid) begin
         case (state)
             S_IDLE: begin
                 if (~invalid & paging & virt_bus.a_valid) begin

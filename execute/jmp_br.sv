@@ -17,11 +17,11 @@ module jmp_br (
 
     wire flag = result[0];
 
-    assign bj_en = bj_ops.jal_op | bj_ops.jalr_op |
-                   (~stall &
-                    ((bj_ops.beq_op & flag) | (bj_ops.bne_op & ~flag) |
-                     ((bj_ops.blt_op|bj_ops.bltu_op) & flag) |
-                     ((bj_ops.bge_op|bj_ops.bgeu_op) & ~flag)));
+    wire take_br = (bj_ops.beq_op & flag) | (bj_ops.bne_op & ~flag) |
+                   ((bj_ops.blt_op|bj_ops.bltu_op) & flag) |
+                   ((bj_ops.bge_op|bj_ops.bgeu_op) & ~flag);
+
+    assign bj_en = bj_ops.jal_op | (~stall & (bj_ops.jalr_op | take_br));
 
     wire relative_pc = bj_ops.jal_op |
                        bj_ops.beq_op | bj_ops.bne_op |
