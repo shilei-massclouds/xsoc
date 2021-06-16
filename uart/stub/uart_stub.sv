@@ -31,21 +31,20 @@ module uart (
     localparam S_IDLE = 1'b0;
     localparam S_BUSY = 1'b1;
 
-    reg [7:0] lsr;
-
-    reg read_lsr;
-
     /* Controller */
     logic state, next_state;
     dff dff_state (clk, rst_n, `DISABLE, `DISABLE, next_state, state);
 
+    reg [7:0] lsr;
+    wire read_lsr = (state == S_BUSY) && (bus.a_address == UART_LSR);
+
     /* State transition */
-    always @(state, bus.a_valid, bus.d_ready) begin
+    always @(state, bus.a_valid) begin
         case (state)
             S_IDLE:
                 next_state = bus.a_valid ? S_BUSY : S_IDLE;
             S_BUSY:
-                next_state = bus.d_ready ? S_IDLE : S_BUSY;
+                next_state = S_IDLE;
             default:
                 next_state = S_IDLE;
         endcase
@@ -63,11 +62,12 @@ module uart (
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
             lsr <= UART_LSR_THRE | UART_LSR_TEMT;
-            read_lsr <= `FALSE;
         end else begin
             if ((state == S_IDLE) & bus.a_valid) begin
+                /*
                 if (bus.a_address != UART_THR && bus.a_address != UART_LSR)
-                    $display($time,, "Uart: addr(%x)", bus.a_address);
+                    $display($time,, "Uart: [%x] %x %x",
+                             bus.a_address, bus.a_data, bus.a_opcode); */
 
                 if (bus.a_opcode == `TL_PUT_F) begin
                     if (bus.a_address == UART_THR) begin
@@ -75,19 +75,10 @@ module uart (
                     end
                     bus.d_opcode <= `TL_ACCESS_ACK;
                 end else if (bus.a_opcode == `TL_GET) begin
-                    if (bus.a_address == UART_LSR) begin
-                        read_lsr <= `TRUE;
-                    end
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
                 end
                 bus.d_size <= bus.a_size;
                 bus.d_source <= bus.a_source;
-            end
-
-            if ((state == S_BUSY) & bus.d_ready) begin
-                read_lsr <= `FALSE;
-                //do_rx <= `FALSE;
-                //do_status <= `FALSE;
             end
         end
     end
