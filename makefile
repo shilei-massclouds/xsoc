@@ -15,6 +15,7 @@ SRC = ./soc.sv ./cpu.sv \
 	  ./datacache/datacache.sv ./datacache/dbg_datacache.sv \
 	  ./rom/stub/rom_stub.sv ./rom/stub/dbg_rom.sv \
 	  ./ram/ram.sv ./ram/dbg_ram.sv \
+	  ./mmio_blk/mmio_blk.sv ./mmio_blk/dbg_mmio_blk.sv \
 	  ./uart/stub/uart_stub.sv ./uart/stub/uart.c \
 	  ./crossbar/crossbar.sv ./crossbar/arbiter.sv ./crossbar/pma.sv \
 	  ./crossbar/crossbar_ctl.sv ./crossbar/crossbar_dp.sv \

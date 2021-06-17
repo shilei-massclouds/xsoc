@@ -10,6 +10,7 @@ struct {
     '{'h0000000000000000, 'h0000000000001000},   /* ZERO-Page */
     '{'h0000000000001000, 'h000000000ffff000},   /* ROM */
     '{'h0000000010000000, 'h0000000000000100},   /* UART */
+    '{'h0000000010001000, 'h0000000000001000},   /* MMIO-BLK */
     '{'h0000000080000000, 'h0000000080000000}    /* RAM */
 };
 
@@ -27,6 +28,7 @@ module pma (
     assign chip_sel = `IN_CHIP_RANGE(a_address, CHIP_ZERO) |
                       `IN_CHIP_RANGE(a_address, CHIP_ROM) |
                       `IN_CHIP_RANGE(a_address, CHIP_UART) |
+                      `IN_CHIP_RANGE(a_address, CHIP_MMIO_BLK) |
                       `IN_CHIP_RANGE(a_address, CHIP_RAM);
 
     assign chip_addr = a_address - ranges[chip_sel].start;

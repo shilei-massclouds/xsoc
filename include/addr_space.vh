@@ -5,6 +5,7 @@ typedef enum {
     CHIP_ZERO = 0,
     CHIP_ROM,
     CHIP_UART,
+    CHIP_MMIO_BLK,
     CHIP_RAM,
     CHIP_LAST
 } chip_index;

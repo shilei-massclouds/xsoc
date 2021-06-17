@@ -9,7 +9,7 @@ module soc;
     wire clk;
     wire rst_n;
 
-    wire clear  = `DISABLE;
+    wire clear = `DISABLE;
 
     wire [15:0] grant;
     wire [15:0] request;
@@ -49,11 +49,8 @@ module soc;
     zero_page zero_page(slave[0]);
     rom rom(clk, rst_n, slave[1]);
     uart uart(clk, rst_n, slave[2]);
-    ram ram(clk, rst_n, slave[3]);
-
-    initial begin
-        //#10240 $finish();
-    end
+    mmio_blk mmio_blk(clk, rst_n, slave[3]);
+    ram ram(clk, rst_n, slave[4]);
 
     generate
         for (genvar i = 2; i < 16; i++) begin: cycle0
