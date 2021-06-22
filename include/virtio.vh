@@ -27,6 +27,9 @@
 `define VIRTIO_ID_PMEM              'd27 /* virtio pmem */
 `define VIRTIO_ID_MAC80211_HWSIM    'd29 /* virtio mac80211-hwsim */
 
+`define VIRT_VERSION_LEGACY         'd1
+`define VIRT_VERSION                'd2
+
 /*
  * MMIO control registers
  */
@@ -115,5 +118,8 @@
 
 `define VIRTIO_MMIO_INT_VRING		'b01
 `define VIRTIO_MMIO_INT_CONFIG		'b10
+
+`define VIRTIO_QUEUE_MAX            1024
+`define VIRTQUEUE_MAX_SIZE          1024
 
 `endif

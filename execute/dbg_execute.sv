@@ -48,11 +48,13 @@ module dbg_execute (
                              pc, bj_pc);
             end
 
-            pending <= sys_ops.wfi_op;
-            exit <= pending;
+            if (getenv("TEST").len() > 0) begin
+                pending <= sys_ops.wfi_op;
+                exit <= pending;
 
-            if (exit)
-                $finish();
+                if (exit)
+                    $finish();
+            end
         end
     end
 
