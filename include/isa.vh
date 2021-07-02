@@ -73,6 +73,15 @@ close_img();
 import "DPI-C" function int
 load_img(input longint handle, output longint addr, output longint data);
 
+import "DPI-C" function void
+init_cells(input int max);
+
+import "DPI-C" function longint
+get_cell(input int addr);
+
+import "DPI-C" function void
+set_cell(input int addr, input longint data);
+
 `define CHECK_ENV(env) (getenv(env).len() > 0)
 
 string abi_names[32] = {

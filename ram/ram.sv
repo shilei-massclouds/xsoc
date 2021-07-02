@@ -11,9 +11,6 @@ module ram (
     localparam S_IDLE = 1'b0;
     localparam S_BUSY = 1'b1;
 
-    /* Datapath: Internal data cells in RAM */
-    reg [63:0] cells[bit[27:0]];
-
     /* Controller */
     logic state, next_state;
     dff dff_state (clk, rst_n, `DISABLE, `DISABLE, next_state, state);
@@ -54,7 +51,7 @@ module ram (
     wire [7:0] size_mask = {{4{bus.a_size[1] & bus.a_size[0]}},
                             {2{bus.a_size[1]}},
                             {bus.a_size[1] | bus.a_size[0]}, 1'b1};
-    wire [60:0] addr = bus.a_address[63:3];
+    wire [63:0] addr = bus.a_address;
     wire [2:0] offset = bus.a_address[2:0];
     wire [63:0] a_data = bus.a_data << (8 * offset);
     wire [7:0] a_mask = (bus.a_mask & size_mask) << offset;
@@ -64,18 +61,17 @@ module ram (
                         {8{a_mask[1]}}, {8{a_mask[0]}}};
 
 `define UPDATE_CELL(val) \
-    ((cells[addr] & ~mask) | (((val) << (8 * offset)) & mask))
+    ((get_cell(addr) & ~mask) | (((val) << (8 * offset)) & mask))
 
-`define OLDVAL ((cells[addr] & mask) >> (8 * offset))
+`define OLDVAL ((get_cell(addr) & mask) >> (8 * offset))
 `define NEWVAL ((a_data & mask) >> (8 * offset))
-
-    logic [63:0] mon_put_addr;
 
     /* Todo: bus.a_corrupt means lr or sc */
     assign bus.a_ready = `ENABLE;
     assign bus.d_param = 2'b0;
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
+            init_cells(64'hFFFF_FFFF);
             bus.d_valid <= `DISABLE;
             bus.d_data <= 64'b0;
         end else begin
@@ -87,57 +83,46 @@ module ram (
                 bus.d_size <= bus.a_size;
                 bus.d_source <= bus.a_source;
                 if (is_put) begin
-                    cells[addr] <= (cells[addr] & ~mask) | (a_data & mask);
+                    set_cell(addr, (get_cell(addr) & ~mask) | (a_data & mask));
                     bus.d_opcode <= `TL_ACCESS_ACK;
                     if (bus.a_corrupt)
                         bus.d_data <= 64'b0;
-                    mon_put_addr <= bus.a_address;
                 end else if (is_get) begin
-                    bus.d_data <= cells[addr];
+                    bus.d_data <= get_cell(addr);
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
                 end else if (is_arith) begin
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
-                    bus.d_data <= cells[addr];
+                    bus.d_data <= get_cell(addr);
                     if (bus.a_param == `TL_PARAM_ADD) begin
-                        cells[addr] <=
-                            `UPDATE_CELL(`OLDVAL + `NEWVAL);
-                        mon_put_addr <= bus.a_address;
+                        set_cell(addr, `UPDATE_CELL(`OLDVAL + `NEWVAL));
                     end else if (bus.a_param == `TL_PARAM_MIN) begin
                         if (compare_lt(`NEWVAL, `OLDVAL, bus.a_size)) begin
-                            cells[addr] <= `UPDATE_CELL(`NEWVAL);
-                            mon_put_addr <= bus.a_address;
+                            set_cell(addr, `UPDATE_CELL(`NEWVAL));
                         end
                     end else if (bus.a_param == `TL_PARAM_MAX) begin
                         if (compare_lt(`OLDVAL, `NEWVAL, bus.a_size)) begin
-                            cells[addr] <= `UPDATE_CELL(`OLDVAL);
-                            mon_put_addr <= bus.a_address;
+                            set_cell(addr, `UPDATE_CELL(`OLDVAL));
                         end
                     end else if (bus.a_param == `TL_PARAM_MINU) begin
                         if (`OLDVAL > `NEWVAL) begin
-                            cells[addr] <= `UPDATE_CELL(`NEWVAL);
-                            mon_put_addr <= bus.a_address;
+                            set_cell(addr, `UPDATE_CELL(`NEWVAL));
                         end
                     end else if (bus.a_param == `TL_PARAM_MAXU) begin
                         if (`OLDVAL < `NEWVAL) begin
-                            cells[addr] <= `UPDATE_CELL(`OLDVAL);
-                            mon_put_addr <= bus.a_address;
+                            set_cell(addr, `UPDATE_CELL(`OLDVAL));
                         end
                     end
                 end else if (is_logic) begin
                     bus.d_opcode <= `TL_ACCESS_ACK_DATA;
-                    bus.d_data <= cells[addr];
+                    bus.d_data <= get_cell(addr);
                     if (bus.a_param == `TL_PARAM_SWAP) begin
-                        cells[addr] <= `UPDATE_CELL(`NEWVAL);
-                        mon_put_addr <= bus.a_address;
+                        set_cell(addr, `UPDATE_CELL(`NEWVAL));
                     end if (bus.a_param == `TL_PARAM_XOR) begin
-                        cells[addr] <= `UPDATE_CELL(`NEWVAL ^ `OLDVAL);
-                        mon_put_addr <= bus.a_address;
+                        set_cell(addr, `UPDATE_CELL(`NEWVAL ^ `OLDVAL));
                     end if (bus.a_param == `TL_PARAM_OR) begin
-                        cells[addr] <= `UPDATE_CELL(`NEWVAL | `OLDVAL);
-                        mon_put_addr <= bus.a_address;
+                        set_cell(addr, `UPDATE_CELL(`NEWVAL | `OLDVAL));
                     end if (bus.a_param == `TL_PARAM_AND) begin
-                        cells[addr] <= `UPDATE_CELL(`NEWVAL & `OLDVAL);
-                        mon_put_addr <= bus.a_address;
+                        set_cell(addr, `UPDATE_CELL(`NEWVAL & `OLDVAL));
                     end
                 end
                 bus.d_valid <= `ENABLE;
@@ -166,17 +151,8 @@ module ram (
         .bus   (bus   )
     );
 
-//`define MON_MEM
-`ifdef MON_MEM
-    /* Monitor store data */
-    always @(mon_put_addr) begin
-        if (mon_put_addr)
-            $display($time,, "Mem[%x]: %x",
-                     'h80000000 + mon_put_addr, cells[mon_put_addr[63:3]]);
-    end
-`endif
-
     /* Initialize ram with firmware */
+    /*
     initial begin
         string dev;
         longint handle;
@@ -189,5 +165,6 @@ module ram (
             $display("###### RAM!!! %x", size);
         end
     end
+    */
 
 endmodule
