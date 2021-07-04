@@ -8,11 +8,17 @@ module cpu (
     input wire      rst_n,
 
     input wire      clear,
+
+    output wire [63:0] ma_pc,
+
     output wire     if_request,
     tilelink.master if_phy_bus,
     output wire     ma_request,
     tilelink.master ma_phy_bus
 );
+
+    bit  dump;
+    bit  bubble;
 
     wire [1:0]  priv;
     wire stall;
@@ -26,6 +32,8 @@ module cpu (
     wire [31:0] inst;
 
     wire [63:0] if_pc;
+
+    wire [31:0] id_inst = bubble ? {31'b0, 1'b1} : inst;
 
     wire [63:0] id_pc;
     wire [4:0]  id_rs1;
@@ -90,6 +98,8 @@ module cpu (
     wire [43:0]  ma_tlb_wdata;
     wire         ma_tlb_update;
 
+    assign export_ma_pc = ma_pc;
+
     alu_ops ex_alu_ops();
     io_ops  ex_io_ops();
     bj_ops  ex_bj_ops();
@@ -149,7 +159,7 @@ module cpu (
         .trap_en        (trap_en        ),
         .bj_en          (bj_en          ),
         .pc_in          (id_pc          ),
-        .inst_in        (inst           ),
+        .inst_in        (id_inst        ),
         .rs1            (id_rs1         ),
         .rs2            (id_rs2         ),
         .data1          (id_data1       ),
@@ -308,5 +318,34 @@ module cpu (
         .rd    (wb_rd ),
         .data  (wb_out)
     );
+
+    always @(posedge clk, negedge rst_n) begin
+        if (~rst_n) begin
+            dump <= 1'b0;
+        end else begin
+            if (dump) begin
+                dump_mem();
+                dump_reg(u_regfile.data);
+                dump_csr(u_csr.csr);
+                dump_priv(u_csr._priv);
+                $finish();
+            end else if (wait_breakpoint(wb_pc)) begin
+                dump <= 1'b1;
+            end
+        end
+    end
+
+    always @(posedge clk, negedge rst_n) begin
+        if (~rst_n) begin
+            bubble <= 1'b0;
+        end else begin
+            if (bubble) begin
+            end else if (wait_breakpoint(id_pc)) begin
+                bubble <= 1'b1;
+                dump_pc(id_pc, &(inst[1:0]));
+                $display($time,, "inst: [%x] %x\n", id_pc, inst);
+            end
+        end
+    end
 
 endmodule

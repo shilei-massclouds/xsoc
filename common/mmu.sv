@@ -455,7 +455,8 @@ module mmu (
         .addr       (ori_a_address),
         .pte        (pte        ),
         .invalid    (invalid    ),
-        .tlb_hit    (tlb_hit    )
+        .tlb_hit    (tlb_hit    ),
+        .a_address  (a_address  )
     );
 
 endmodule

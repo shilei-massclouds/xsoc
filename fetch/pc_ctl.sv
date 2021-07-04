@@ -25,9 +25,17 @@ module pc_ctl (
 
     always @ (posedge clk, negedge rst_n) begin
         if (~rst_n) begin
-            pc <= 64'h1000;
         end else begin
             pc <= next_pc;
+        end
+    end
+
+    initial begin
+        if (getenv("RESTORE").len() > 0) begin
+            pc = restore_pc();
+            $display($time,, "restore: pc(%x)", pc);
+        end else begin
+            pc = 64'h1000;
         end
     end
 

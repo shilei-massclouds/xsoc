@@ -14,7 +14,7 @@ module regfile (
     input  wire [63:0]  wb_out
 );
 
-    reg [63:0] data[32];
+    bit [63:0] data[32];
 
     assign data1 = (rs1 == 5'b0) ? 64'b0 :
                    (rs1 == wb_rd) ? wb_out : data[rs1];
@@ -24,11 +24,14 @@ module regfile (
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
-            for (integer i = 0; i < 32; i++)
-                data[i] <= 64'b0;
         end else begin
             if (wb_rd) data[wb_rd] <= wb_out;
         end
+    end
+
+    initial begin
+        if (getenv("RESTORE").len() > 0)
+            restore_reg(data);
     end
 
 endmodule

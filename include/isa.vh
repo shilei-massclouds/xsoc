@@ -61,6 +61,9 @@
 import "DPI-C" function int
 check_verbose(input longint pc);
 
+import "DPI-C" function int
+wait_breakpoint(input longint pc);
+
 import "DPI-C" function string
 getenv(input string env_name);
 
@@ -79,8 +82,38 @@ init_cells(input int max);
 import "DPI-C" function longint
 get_cell(input int addr);
 
-import "DPI-C" function void
+import "DPI-C" function longint
 set_cell(input int addr, input longint data);
+
+import "DPI-C" function void
+dump_mem();
+
+import "DPI-C" function void
+restore_mem(input int max);
+
+import "DPI-C" function void
+dump_reg(input bit [63:0] data[32]);
+
+import "DPI-C" function void
+restore_reg(output bit [63:0] data[32]);
+
+import "DPI-C" function void
+dump_csr(input bit [63:0] data[4096]);
+
+import "DPI-C" function void
+restore_csr(output bit [63:0] data[4096]);
+
+import "DPI-C" function void
+dump_priv(input int priv);
+
+import "DPI-C" function int
+restore_priv();
+
+import "DPI-C" function void
+dump_pc(input longint pc, input int normal);
+
+import "DPI-C" function longint
+restore_pc();
 
 `define CHECK_ENV(env) (getenv(env).len() > 0)
 

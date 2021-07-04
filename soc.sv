@@ -36,10 +36,13 @@ module soc;
         .slave   (slave   )
     );
 
+    wire [63:0] ma_pc;
+
     cpu u_cpu (
         .clk        (clk        ),
         .rst_n      (rst_n      ),
         .clear      (clear      ),
+        .ma_pc      (ma_pc      ),
         .if_request (if_request ),
         .if_phy_bus (master[0]  ),
         .ma_request (ma_request ),
@@ -50,7 +53,7 @@ module soc;
     rom rom(clk, rst_n, slave[1]);
     uart uart(clk, rst_n, slave[2]);
     mmio_blk mmio_blk(clk, rst_n, slave[3]);
-    ram ram(clk, rst_n, slave[4]);
+    ram ram(clk, rst_n, ma_pc, slave[4]);
 
     generate
         for (genvar i = 2; i < 16; i++) begin: cycle0

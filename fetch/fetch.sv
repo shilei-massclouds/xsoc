@@ -32,6 +32,7 @@ module fetch (
 );
 
     wire [63:0] _pc;
+    wire [63:0] pc_in;
     wire inst_valid;
     wire inst_comp;
     wire [31:0] _inst;
@@ -40,6 +41,7 @@ module fetch (
     wire [63:0] tval_in  = page_fault ? tval : 64'b0;
 
     assign if_pc = _pc;
+    assign pc_in = inst_valid ? _pc : 64'b0;
 
     pc_ctl pc_ctl (
         .clk        (clk       ),
@@ -75,7 +77,7 @@ module fetch (
         .bj_en    (bj_en    ),
         .trap_en  (trap_en  ),
         .inst_in  (_inst    ),
-        .pc_in    (_pc      ),
+        .pc_in    (pc_in    ),
         .cause_in (cause_in ),
         .tval_in  (tval_in  ),
         .inst_out (inst_out ),

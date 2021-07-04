@@ -39,12 +39,12 @@ build: head
 
 test: build
 	make -C tests
-	TEST=tests/calc_add ${SIM}
-	TEST=tests/mem_sw_lw ${SIM}
-	TEST=tests/bj_ge ${SIM}
-	TEST=tests/j ${SIM}
-	TEST=tests/rom_load ${SIM}
-	TEST=tests/uart_wr ${SIM}
-	TEST=tests/paging ${SIM}
-	TEST=tests/lr_sc ${SIM}
+	#TEST=tests/calc_add ${SIM}
+	#TEST=tests/mem_sw_lw ${SIM}
+	#TEST=tests/bj_ge ${SIM}
+	#TEST=tests/j ${SIM}
+	#TEST=tests/rom_load ${SIM}
+	#TEST=tests/uart_wr ${SIM}
+	#TEST=tests/paging ${SIM}
+	#TEST=tests/lr_sc ${SIM}
 	TEST=tests/amo ${SIM}

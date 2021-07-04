@@ -18,3 +18,11 @@ check_verbose(uint64_t pc)
     return ((!r_start && !r_end) || (r_start <= pc && pc <= r_end));
 }
 
+int
+wait_breakpoint(uint64_t pc)
+{
+    if (getenv("DUMP_PC") == NULL)
+        return 0;
+
+    return (strtoul(getenv("DUMP_PC"), NULL, 16) == pc);
+}

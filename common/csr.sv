@@ -55,8 +55,6 @@ module csr (
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
-            _priv <= `M_MODE;
-            csr[`MISA] <= MISA_INIT_VAL;
         end else begin
             if (except) begin
                 if (medeleg) begin
@@ -98,6 +96,9 @@ module csr (
                 if (tval == 0)
                     $display($time,, "DEBUG: %x", wdata);
 
+                if (tval == `SATP)
+                    $display($time,, "pc(%x) %x => %x", pc, csr[`SATP], wdata);
+
                 csr[tval] <= wdata;
             end else if (op == `SYSOP_CSR_S) begin
                 csr[tval] <= csr[tval] | wdata;
@@ -115,5 +116,16 @@ module csr (
         .medeleg (medeleg ),
         .tvec    (tvec    )
     );
+
+    initial begin
+        if (getenv("RESTORE").len() > 0) begin
+            _priv = restore_priv();
+            restore_csr(csr);
+            $display($time,, "_priv(%x)", _priv);
+        end else begin
+            _priv = `M_MODE;
+            csr[`MISA] = MISA_INIT_VAL;
+        end
+    end
 
 endmodule

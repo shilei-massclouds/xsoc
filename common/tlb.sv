@@ -45,15 +45,21 @@ module tlb (
     bit [(CACHE_WIDTH-1):0] lines[CACHE_DEPTH];
 
     /* Output */
+    assign if_hit = 1'b0;
+    /*
     assign if_hit = ~invalid &
                     lines[if_index][`F_TLB_VALID] &
                     (lines[if_index][`F_TLB_TAG] == if_tag);
+                    */
 
     assign if_rdata = if_hit ? lines[if_index][`F_TLB_DATA] : 44'b0;
 
+    assign ma_hit = 1'b0;
+    /*
     assign ma_hit = ~invalid &
                     lines[ma_index][`F_TLB_VALID] &
                     (lines[ma_index][`F_TLB_TAG] == ma_tag);
+                    */
 
     assign ma_rdata = ma_hit ? lines[ma_index][`F_TLB_DATA] : 44'b0;
 

@@ -52,6 +52,7 @@ module datacache (
                         {8{byte_mask[1]}}, {8{byte_mask[0]}}};
 
     /* Output */
+    //assign hit = 1'b0;
     assign hit = io_ops.load_op &
                  lines[index][`F_D_VALID] & (lines[index][`F_D_TAG] == tag);
 

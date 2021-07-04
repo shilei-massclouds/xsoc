@@ -6,6 +6,8 @@ module dbg_ram (
     input wire clk,
     input wire rst_n,
 
+    input wire [63:0] pc,
+
     input wire [63:0] mask,
     input wire state,
 
@@ -14,7 +16,7 @@ module dbg_ram (
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
-        end else if (`CHECK_ENV("VERBOSE_RAM")) begin
+        end else if (`CHECK_ENV("VERBOSE_RAM") || check_verbose(pc)) begin
             if (bus.a_valid) begin
                 if (bus.a_opcode == `TL_GET)
                     $display($time,, "RAM(get): [%x] (%x); state(%x)",

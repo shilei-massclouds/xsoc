@@ -12,15 +12,16 @@ module dbg_mmu (
     input wire [63:0] addr,
     input wire [63:0] pte,
     input wire        invalid,
-    input wire        tlb_hit
+    input wire        tlb_hit,
+    input wire [63:0] a_address
 );
 
     always @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
         end else begin
             if (check_verbose(pc)) begin
-                $display($time,, "MMU: [%08x] state(%0x=>%0x) pte(%0x) addr(%0x) invalid(%0x) tlb_hit(%0x)",
-                         pc, state, next_state, pte, addr, invalid, tlb_hit);
+                $display($time,, "MMU: [%08x] state(%0x=>%0x) pte(%0x) addr(%0x) invalid(%0x) tlb_hit(%0x) a_address(%0x)",
+                         pc, state, next_state, pte, addr, invalid, tlb_hit, a_address);
             end
         end
     end
